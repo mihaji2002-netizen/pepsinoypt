@@ -1,9 +1,9 @@
 import { cloneBlock } from "../data/blocks.js";
 import { getTrack } from "../data/subjects.js";
-import { computePolicy, prioritizeSubjects, subjectForMode } from "./rules.js";
+import { getPeriod, PERIODS, resolveSuggestions } from "../data/flow.js";
 
 /**
- * Builds a concrete daily timeline from profile + policy.
+ * Builds a concrete daily timeline from fluid-flow answers + selected suggestions.
  */
 
 export function buildDailyPlan(profile, options = {}) {
@@ -13,166 +13,43 @@ export function buildDailyPlan(profile, options = {}) {
     throw new Error("مسیر تحصیلی نامعتبر است.");
   }
 
-  const policy = computePolicy(profile);
-  const subjects = prioritizeSubjects(track, dayIndex);
-  const totalStudyMin = Math.round((policy.studyHours || 8) * 60);
-  const budget = {
-    descriptive: Math.round(totalStudyMin * policy.split.descriptive),
-    test: Math.round(totalStudyMin * policy.split.test),
-  };
+  const answers = normalizeAnswers(profile, track);
+  const allSuggestions = resolveSuggestions(answers);
+  const selectedIds = new Set(
+    profile.selectedSuggestions?.length
+      ? profile.selectedSuggestions
+      : allSuggestions.map((s) => s.id)
+  );
+  const selected = allSuggestions.filter((s) => selectedIds.has(s.id));
+  if (!selected.length) {
+    throw new Error("حداقل یک پیشنهاد برای ساخت برنامه لازم است.");
+  }
 
   /** @type {ReturnType<typeof cloneBlock>[]} */
   const blocks = [];
-  let descUsed = 0;
-  let testUsed = 0;
-  let subjOffset = 0;
 
-  const pushStudy = (blockId, mode, durationMin, subject) => {
-    const b = cloneBlock(blockId, {
-      durationMin,
-      subjectId: subject?.id ?? null,
-      subjectName: subject?.name ?? null,
-    });
-    if (subject) {
-      b.title = `${b.title} — ${subject.name}`;
-    }
-    blocks.push(b);
-    if (mode === "descriptive") descUsed += durationMin;
-    else if (mode === "test") testUsed += durationMin;
-    else {
-      descUsed += Math.round(durationMin * 0.5);
-      testUsed += Math.round(durationMin * 0.5);
-    }
-    subjOffset += 1;
-  };
+  // Keep period order: morning → afternoon → evening
+  for (const period of PERIODS) {
+    const items = selected.filter((s) => s.period === period.id);
+    if (!items.length) continue;
 
-  // Warmup
-  blocks.push(cloneBlock("warmup", { durationMin: 15 }));
-
-  // Foundation / catch-up early if needed
-  if (policy.includeCatchup10 && descUsed < budget.descriptive) {
-    const s = subjects[0];
-    pushStudy("catchup-10", "descriptive", 55, s);
-  }
-
-  // Specialty descriptive blocks
-  if (policy.bioSummaryBlock && descUsed < budget.descriptive) {
-    const bio = subjects.find((s) => s.id === "bio") || subjects[0];
-    pushStudy("bio-giyahi-summary", "descriptive", 50, bio);
-  }
-
-  if (policy.chemMemoryBlock && descUsed < budget.descriptive) {
-    const chem = subjects.find((s) => s.id === "chem") || subjects[1] || subjects[0];
-    pushStudy("chem-hafziat", "descriptive", 40, chem);
-  }
-
-  // Core descriptive fill
-  while (descUsed < budget.descriptive - 30) {
-    const remaining = budget.descriptive - descUsed;
-    const s = subjectForMode(subjects, "descriptive", subjOffset);
-    if (policy.preferFinalDrill && remaining >= 70 && subjOffset % 3 === 0) {
-      pushStudy("final-drill", "descriptive", Math.min(70, remaining), s);
-    } else if (s.type === "problem" || s.type === "mixed") {
-      pushStudy("problem-set", "descriptive", Math.min(55, remaining), s);
-    } else if (subjOffset % 2 === 0) {
-      pushStudy("desc-core", "descriptive", Math.min(60, remaining), s);
-    } else {
-      pushStudy("desc-notes", "descriptive", Math.min(45, remaining), s);
-    }
-    if (blocks.length > 40) break;
-  }
-
-  // Pre-read for 11th
-  if (policy.includePreRead12 && descUsed < budget.descriptive + 20) {
-    const s = subjects[Math.min(1, subjects.length - 1)];
-    blocks.push(
-      cloneBlock("pre-read-12", {
-        durationMin: 40,
-        subjectId: s.id,
-        subjectName: s.name,
-        title: `پیش‌خوانی دروس دوازدهم — ${s.name}`,
-      })
-    );
-    descUsed += 40;
-  }
-
-  // Test / exam blocks
-  const isExamDay = dayIndex % 7 === 5 || dayIndex % 7 === 6; // weekend-ish emphasis
-  if (policy.mazBlock && isExamDay && testUsed < budget.test) {
-    blocks.push(cloneBlock("maz-full", { durationMin: Math.min(180, budget.test - testUsed || 120) }));
-    testUsed += blocks[blocks.length - 1].durationMin;
-    if (policy.analysisAfterExam) {
-      blocks.push(cloneBlock("exam-analysis", { durationMin: 60 }));
-      testUsed += 60;
-    }
-    if (policy.answerKeyLoop) {
-      blocks.push(cloneBlock("answerkey-to-book", { durationMin: 45 }));
-      descUsed += 25;
-      testUsed += 20;
-    }
-  } else {
-    if (policy.gozine2Block && (dayIndex % 3 === 0) && testUsed < budget.test) {
-      const dur = Math.min(90, budget.test - testUsed);
-      blocks.push(cloneBlock("gozine2", { durationMin: dur }));
-      testUsed += dur;
-      blocks.push(cloneBlock("exam-analysis", { durationMin: 45 }));
-      testUsed += 45;
-      blocks.push(cloneBlock("answerkey-to-book", { durationMin: 40 }));
-    }
-
-    if (policy.hardExamBlock && dayIndex % 5 === 0 && testUsed < budget.test) {
-      blocks.push(cloneBlock("madares-bartar", { durationMin: 100 }));
-      testUsed += 100;
-      blocks.push(cloneBlock("exam-analysis", { durationMin: 50 }));
-      testUsed += 50;
-    }
-
-    if (policy.kheiliSabzBlock) {
-      while (testUsed < budget.test - 25) {
-        const remaining = budget.test - testUsed;
-        const s = subjectForMode(subjects, "test", subjOffset);
-        if (policy.preferFlexibleBlocks && subjOffset % 2 === 0) {
-          pushStudy("light-mixed", "mixed", Math.min(50, remaining + 10), s);
-        } else if (subjOffset % 3 === 0) {
-          pushStudy("test-wrong-bank", "test", Math.min(35, remaining), s);
-        } else {
-          pushStudy("kheili-sabz", "test", Math.min(75, remaining), s);
-        }
-        if (blocks.filter((b) => b.mode === "test" || b.type === "exam").length > 12) break;
+    for (const item of items) {
+      const periodBlocks = expandSuggestion(item);
+      // Tag period metadata on first real block
+      if (periodBlocks.length) {
+        periodBlocks[0].periodId = period.id;
+        periodBlocks[0].periodLabel = period.label;
+        periodBlocks[0].isPeriodStart = true;
       }
-    } else {
-      while (testUsed < budget.test - 20) {
-        const remaining = budget.test - testUsed;
-        const s = subjectForMode(subjects, "test", subjOffset);
-        if (policy.preferFlexibleBlocks) {
-          pushStudy("light-mixed", "mixed", Math.min(50, remaining), s);
-        } else {
-          pushStudy("test-targeted", "test", Math.min(50, remaining), s);
-        }
-        if (blocks.length > 45) break;
+      for (const b of periodBlocks) {
+        b.periodId = b.periodId || period.id;
+        b.periodLabel = b.periodLabel || period.label;
+        blocks.push(b);
       }
     }
   }
 
-  // Night memory
-  if (policy.nightMemory) {
-    const mem = subjects.find((s) => s.type === "memory") || subjects[subjects.length - 1];
-    blocks.push(
-      cloneBlock("memory-night", {
-        durationMin: 25,
-        subjectId: mem.id,
-        subjectName: mem.name,
-        title: `مرور شبانه حفظیات — ${mem.name}`,
-      })
-    );
-  }
-
-  // Insert breaks between non-break blocks
-  const withBreaks = insertBreaks(blocks, policy);
-
-  // Assign clock times
-  const timed = assignTimes(withBreaks, policy.startTime);
-
+  const timed = assignPeriodTimes(blocks);
   const studyBlocks = timed.filter((b) => b.type !== "break");
   const totalPlanned = studyBlocks.reduce((s, b) => s + b.durationMin, 0);
 
@@ -181,58 +58,74 @@ export function buildDailyPlan(profile, options = {}) {
     dayIndex,
     trackId: track.id,
     trackLabel: track.label,
-    policy,
-    split: policy.split,
+    answers,
+    suggestions: allSuggestions.map((s) => ({
+      id: s.id,
+      period: s.period,
+      title: s.title,
+      body: s.body,
+      selected: selectedIds.has(s.id),
+    })),
     blocks: timed,
     stats: {
       totalBlocks: timed.length,
       studyBlocks: studyBlocks.length,
       totalMinutes: totalPlanned,
-      descriptiveTarget: budget.descriptive,
-      testTarget: budget.test,
-      descriptiveUsed: descUsed,
-      testUsed: testUsed,
+      periods: selected.map((s) => s.period),
     },
-    rationale: buildRationale(profile, policy),
+    rationale: buildRationale(answers, selected),
   };
 }
 
-function insertBreaks(blocks, policy) {
-  const out = [];
-  let sinceLong = 0;
-  let studyStreak = 0;
-
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    out.push(b);
-    if (b.type === "break") continue;
-
-    studyStreak += b.durationMin;
-    sinceLong += b.durationMin;
-
-    const isLast = i === blocks.length - 1;
-    if (isLast) break;
-
-    if (sinceLong >= 150) {
-      out.push(cloneBlock("break-long", { durationMin: policy.longBreakMin }));
-      sinceLong = 0;
-      studyStreak = 0;
-    } else if (studyStreak >= 50) {
-      out.push(cloneBlock("break-short", { durationMin: policy.shortBreakMin }));
-      studyStreak = 0;
-    }
-  }
-  return out;
+export function previewSuggestions(profile) {
+  const track = getTrack(`${profile.grade}-${profile.field}`);
+  if (!track) return [];
+  return resolveSuggestions(normalizeAnswers(profile, track));
 }
 
-function assignTimes(blocks, startTime) {
-  let [h, m] = (startTime || "08:00").split(":").map(Number);
-  let minutes = h * 60 + m;
+function normalizeAnswers(profile, track) {
+  const next = track.subjects.find((s) => s.id === profile.nextExamId) || track.subjects[0];
+  const held = track.subjects.find((s) => s.id === profile.nextHeldId) || null;
+  return {
+    grade: profile.grade,
+    field: profile.field,
+    nextExamId: next?.id || profile.nextExamId,
+    nextExamName: next?.name || profile.nextExamName || "درس",
+    examNews: profile.examNews || "cancelled",
+    subjectStrength: profile.subjectStrength || "weak",
+    nextHeldWeak: Boolean(profile.nextHeldWeak),
+    nextHeldId: held?.id || profile.nextHeldId || null,
+    nextHeldName: held?.name || profile.nextHeldName || "امتحان بعدی برگزارشدنی",
+  };
+}
+
+function expandSuggestion(item) {
+  return (item.blocks || []).map((spec) => {
+    const blockId = spec.blockId || spec.id;
+    const b = cloneBlock(blockId, {
+      durationMin: spec.durationMin,
+      subjectId: spec.subjectId ?? null,
+      subjectName: spec.subjectName ?? null,
+      title: spec.title,
+      desc: spec.desc,
+      suggestionId: item.id,
+    });
+    return b;
+  });
+}
+
+/**
+ * Assign clock times within each period window.
+ * Morning / afternoon / evening restart at their own startTime.
+ */
+function assignPeriodTimes(blocks) {
+  const cursors = Object.fromEntries(PERIODS.map((p) => [p.id, parseClock(p.startTime)]));
 
   return blocks.map((b) => {
-    const start = minutes;
-    const end = minutes + b.durationMin;
-    minutes = end;
+    const periodId = b.periodId || "morning";
+    const start = cursors[periodId] ?? parseClock("08:00");
+    const end = start + b.durationMin;
+    cursors[periodId] = end;
     return {
       ...b,
       startMin: start,
@@ -241,6 +134,11 @@ function assignTimes(blocks, startTime) {
       endLabel: formatClock(end),
     };
   });
+}
+
+function parseClock(hhmm) {
+  const [h, m] = (hhmm || "08:00").split(":").map(Number);
+  return h * 60 + m;
 }
 
 export function formatClock(totalMin) {
@@ -259,25 +157,26 @@ function getDayIndex() {
   return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
 }
 
-function buildRationale(profile, policy) {
+function buildRationale(answers, selected) {
   const parts = [];
-  parts.push(
-    `نسبت مؤثر: ${Math.round(policy.split.descriptive * 100)}٪ تشریحی و ${Math.round(policy.split.test * 100)}٪ تستی.`
-  );
-  if (profile.examStatus === "postponed") {
-    parts.push("به‌خاطر تعویق امتحانات، جبران پایه و تثبیت تشریحی اولویت دارد.");
-  } else if (profile.examStatus === "uncertain") {
-    parts.push("به‌خاطر وضعیت نامشخص، بلوک‌های دوکاره و انعطاف‌پذیر جایگزین برنامه صلب شده‌اند.");
+  parts.push(`امتحان بعدی: ${answers.nextExamName}.`);
+  if (answers.examNews === "cancelled") {
+    parts.push("وضعیت: کنسل / تعویق‌شده.");
+    if (answers.subjectStrength === "weak") {
+      parts.push("خودارزیابی: در این درس ضعیفی.");
+      parts.push(
+        answers.nextHeldWeak
+          ? "تمرکز بعدازظهر روی امتحان برگزارشدنی‌ای است که در آن ضعفی."
+          : "بعدازظهر روی تست و آزمون جامع می‌رود."
+      );
+    } else {
+      parts.push("خودارزیابی: می‌تونی این درس را ببندی؛ صبح آزمون جامع، ظهر مرور تعویقی.");
+    }
   } else {
-    parts.push("وضعیت عادی امتحانات: ترکیب مرور نهایی، آزمون و تحلیل.");
+    parts.push("خبر رسمی نیست؛ برنامه آماده‌باش و انعطاف‌پذیر است.");
   }
-  if (profile.level === "weak") {
-    parts.push("سطح ضعیف: وزن جبران دهم و مطالعه تشریحی بالاتر است.");
-  } else if (profile.level === "strong") {
-    parts.push("سطح قوی: آزمون‌های سخت‌تر و فشار تستی بیشتر.");
-  }
-  if (policy.mazBlock) parts.push("بلوک آزمون جامع ماز در روزهای مناسب فعال است.");
-  if (policy.includePreRead12) parts.push("پیش‌خوانی دوازدهم برای پایه یازدهم لحاظ شده.");
+  const labels = selected.map((s) => getPeriod(s.period).label).join(" · ");
+  if (labels) parts.push(`بازه‌های فعال: ${labels}.`);
   return parts.join(" ");
 }
 

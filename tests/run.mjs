@@ -1,13 +1,14 @@
 /**
- * Node test runner for scenario matrix.
+ * Node test runner for fluid coaching scenario matrix.
  * Usage: node tests/run.mjs
  */
 import { runAllScenarioTests, SHOWCASE, runScenario, assertPlanInvariants } from "../js/engine/scenarios.js";
 import { buildDailyPlan } from "../js/engine/planner.js";
 import { computePolicy } from "../js/engine/rules.js";
+import { previewSuggestions } from "../js/engine/planner.js";
 
 const report = runAllScenarioTests();
-console.log("=== Masir Scenario Tests ===");
+console.log("=== Masir Fluid Flow Tests ===");
 console.log(`Total: ${report.total}`);
 console.log(`Passed: ${report.passed}`);
 console.log(`Failed: ${report.failed}`);
@@ -26,8 +27,9 @@ console.log("\n=== Showcase plans ===");
 for (const profile of SHOWCASE) {
   const { plan, policy } = runScenario(profile, 3);
   const errs = assertPlanInvariants(plan, profile);
+  const sugg = previewSuggestions(profile);
   console.log(
-    `- ${policy.trackId} | ${profile.examStatus}/${profile.level}/${profile.ratioId} | blocks=${plan.blocks.length} | rules=${policy.rulesFired.join(",")}${errs.length ? " | ERR " + errs.join(";") : ""}`
+    `- ${policy.trackId} | ${profile.examNews}/${profile.subjectStrength || "-"} | blocks=${plan.blocks.length} | suggestions=${sugg.length} | rules=${policy.rulesFired.join(",")}${errs.length ? " | ERR " + errs.join(";") : ""}`
   );
 }
 
@@ -40,4 +42,4 @@ console.log("\nStructure stable across rebuilds:", sameStructure ? "yes" : "no")
 if (!sameStructure) process.exitCode = 1;
 
 const pol = computePolicy(p);
-console.log("Policy split:", pol.split);
+console.log("Policy rules:", pol.rulesFired.join(", "));

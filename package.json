@@ -1,0 +1,11 @@
+{
+  "name": "masir",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static RTL study planner PWA for Iranian final exams and Konkur",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run.mjs",
+    "start": "python3 -m http.server 4173 --bind 127.0.0.1"
+  }
+}

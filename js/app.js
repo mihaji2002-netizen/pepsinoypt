@@ -18,7 +18,7 @@ import { FocusTimer } from "./components/timer.js";
 import { AmbientPlayer } from "./components/music.js";
 import { exportPlanImage, printPlan } from "./components/export.js";
 import { $, $$, showToast, toPersianDigits, escapeHtml } from "./utils/helpers.js";
-import { formatJalaliDate, formatDuration } from "./utils/persian-date.js";
+import { formatJalaliDate } from "./utils/persian-date.js";
 
 const state = {
   view: "landing",
@@ -84,7 +84,7 @@ function bindGlobal() {
       const view = btn.dataset.nav;
       if (view === "today" || view === "focus" || view === "settings") {
         if (!state.profile) {
-          showToast("اول برنامه را بساز");
+          showToast("اول برنامه‌ت رو بساز");
           showView("wizard");
           return;
         }
@@ -242,15 +242,15 @@ function renderWizard() {
   if (step.id === "grade") {
     panel.innerHTML = `
       <h2 class="panel-title">پایه‌ات چیه؟</h2>
-      <p class="panel-desc">بر اساس پایه، مسیر پیشنهادها کمی فرق می‌کند.</p>
+      <p class="panel-desc">همینو بگو بریم جلو.</p>
       <div class="choice-grid cols-2" id="choice-grade">
         <button type="button" class="choice ${d.grade === 11 ? "selected" : ""}" data-grade="11">
           <span class="choice-title">یازدهم</span>
-          <span class="choice-meta">نهایی + آماده‌سازی دوازدهم</span>
+          <span class="choice-meta">نهایی + یه کم نگاه به دوازدهم</span>
         </button>
         <button type="button" class="choice ${d.grade === 12 ? "selected" : ""}" data-grade="12">
           <span class="choice-title">دوازدهم</span>
-          <span class="choice-meta">نهایی و کنکور — برنامهٔ سیال</span>
+          <span class="choice-meta">نهایی و کنکور</span>
         </button>
       </div>`;
     panel.querySelector("#choice-grade").onclick = (e) => {
@@ -262,8 +262,8 @@ function renderWizard() {
     };
   } else if (step.id === "field") {
     panel.innerHTML = `
-      <h2 class="panel-title">رشته‌ات؟</h2>
-      <p class="panel-desc">برای لیست دروس امتحان بعدی لازم است.</p>
+      <h2 class="panel-title">رشته‌ات چیه؟</h2>
+      <p class="panel-desc">که بدونم از چه درسایی برات بیارم.</p>
       <div class="choice-grid cols-2" id="choice-field">
         <button type="button" class="choice ${d.field === "exp" ? "selected" : ""}" data-field="exp">
           <span class="choice-title">تجربی</span>
@@ -282,7 +282,7 @@ function renderWizard() {
   } else if (step.id === "nextExam") {
     panel.innerHTML = `
       <h2 class="panel-title">امتحان بعدیت چیه؟</h2>
-      <p class="panel-desc">از بین دروس ${track.label} یکی را انتخاب کن.</p>
+      <p class="panel-desc">از لیست ${track.label} یکی رو انتخاب کن.</p>
       <div class="choice-grid" id="choice-exam-subj">
         ${track.subjects
           .map(
@@ -305,8 +305,8 @@ function renderWizard() {
     };
   } else if (step.id === "examNews") {
     panel.innerHTML = `
-      <h2 class="panel-title">وضعیت این امتحان؟</h2>
-      <p class="panel-desc">آخرین خبری که داری را بگو تا پیشنهادها عوض شود.</p>
+      <h2 class="panel-title">خب، این امتحان چی شد؟</h2>
+      <p class="panel-desc">آخرین خبری که شنیدی رو بگو.</p>
       <div class="choice-grid" id="choice-news">
         ${Object.values(EXAM_NEWS)
           .map(
@@ -327,8 +327,8 @@ function renderWizard() {
     };
   } else if (step.id === "strength") {
     panel.innerHTML = `
-      <h2 class="panel-title">در «${escapeHtml(subjectName(d))}» چطوری؟</h2>
-      <p class="panel-desc">این انتخاب مسیر صبح و ظهر را عوض می‌کند.</p>
+      <h2 class="panel-title">تو «${escapeHtml(subjectName(d))}» چطوری؟</h2>
+      <p class="panel-desc">راستشو بگو؛ صبح و ظهرت با این عوض می‌شه.</p>
       <div class="choice-grid" id="choice-strength">
         ${Object.values(SUBJECT_STRENGTH)
           .map(
@@ -349,8 +349,8 @@ function renderWizard() {
     };
   } else if (step.id === "nextHeld") {
     panel.innerHTML = `
-      <h2 class="panel-title">امتحان بعدی‌ای که برگزار می‌شه رو ضعیفی؟</h2>
-      <p class="panel-desc">اگر آره، بعدازظهر همان درس را کار می‌کنی. اگر نه، می‌رویم سراغ تست و آزمون جامع.</p>
+      <h2 class="panel-title">امتحان بعدی‌ای که قراره برگزار بشه رو ضعیفی؟</h2>
+      <p class="panel-desc">آره؟ ظهر همون درس رو کار می‌کنی. نه؟ می‌ریم سراغ تست و آزمون جامع.</p>
       <div class="choice-grid cols-2" id="choice-held-weak" style="margin-bottom: var(--space-4)">
         <button type="button" class="choice ${d.nextHeldWeak ? "selected" : ""}" data-weak="1">
           <span class="choice-title">آره، ضعیفم</span>
@@ -360,7 +360,7 @@ function renderWizard() {
         </button>
       </div>
       <div class="field ${d.nextHeldWeak ? "" : "hidden"}" id="held-subject-wrap">
-        <label>کدام امتحان برگزارشدنی؟</label>
+        <label>کدوم امتحانه؟</label>
         <div class="choice-grid" id="choice-held-subj">
           ${track.subjects
             .filter((s) => s.id !== d.nextExamId)
@@ -394,8 +394,8 @@ function renderWizard() {
     }
     const selected = new Set(d.selectedSuggestions);
     panel.innerHTML = `
-      <h2 class="panel-title">پیشنهادهای ساخت برنامهٔ امروز</h2>
-      <p class="panel-desc">هر کدام را که می‌خواهی در روزت باشد انتخاب کن. زمان‌ها به صورت بازهٔ صبح تا ظهر / ظهر تا عصر / عصر تا شب چیده می‌شوند.</p>
+      <h2 class="panel-title">اینا پیشنهادات ساخت برنامه‌ته</h2>
+      <p class="panel-desc">هر کدومو خواستی نگه دار. ساعت نمی‌بندیم؛ فقط صبح تا ظهر / ظهر تا عصر / عصر تا شب.</p>
       <div class="suggestion-list" id="choice-suggestions">
         ${suggestions
           .map((s) => {
@@ -403,10 +403,10 @@ function renderWizard() {
             const on = selected.has(s.id);
             return `
             <button type="button" class="suggestion-card ${on ? "selected" : ""}" data-id="${s.id}" aria-pressed="${on}">
-              <div class="suggestion-period">${period.label}<span>${period.hint}</span></div>
+              <div class="suggestion-period">${period.label}</div>
               <div class="suggestion-title">${escapeHtml(s.title)}</div>
               <p class="suggestion-body">${escapeHtml(s.body)}</p>
-              <div class="suggestion-check">${on ? "انتخاب شد ✓" : "برای افزودن بزن"}</div>
+              <div class="suggestion-check">${on ? "اوکیه، تو برنامه‌ست ✓" : "بزن اضافه شه"}</div>
             </button>`;
           })
           .join("")}
@@ -452,7 +452,7 @@ function wizardNav(dir) {
   const step = steps[state.wizardStep];
   if (step.id === "suggestions") {
     if (!state.wizardDraft.selectedSuggestions?.length) {
-      showToast("حداقل یک پیشنهاد را انتخاب کن");
+      showToast("حداقل یکی از پیشنهادها رو انتخاب کن");
       return;
     }
   }
@@ -476,7 +476,7 @@ function wizardNav(dir) {
   saveSettings(state.settings);
   setOnboardingDone(true);
   rebuildPlan(true);
-  showToast("برنامهٔ امروز ساخته شد");
+  showToast("برنامه‌ت آماده‌ست، برو اجراش کن");
   showView("today");
 }
 
@@ -533,7 +533,6 @@ function renderToday() {
       html += `
         <div class="period-header">
           <div class="period-header-label">${period.label}</div>
-          <div class="period-header-hint">${period.hint} · ${toPersianDigits(period.startTime)}</div>
         </div>`;
     }
     const typeLabel = typeLabelFa(b.type);
@@ -542,9 +541,7 @@ function renderToday() {
         <div class="timeline-dot" data-type="${b.type}" title="${typeLabel}">${typeShort(b.type)}</div>
         <div class="timeline-body ${b.done ? "done" : ""}">
           <div class="timeline-meta">
-            <span class="badge">${toPersianDigits(b.startLabel)} – ${toPersianDigits(b.endLabel)}</span>
-            <span class="badge badge-accent">${formatDuration(b.durationMin)}</span>
-            <span>${typeLabel}</span>
+            <span class="badge">${typeLabel}</span>
           </div>
           <h3 class="timeline-title">${escapeHtml(b.title)}</h3>
           <p class="timeline-desc">${escapeHtml(b.desc)}</p>
@@ -553,7 +550,7 @@ function renderToday() {
               b.type !== "break"
                 ? `<button type="button" class="check-btn ${b.done ? "checked" : ""}" data-action="toggle" data-id="${b.instanceId}">${b.done ? "انجام شد ✓" : "تیک بزن"}</button>
                    <button type="button" class="btn btn-ghost" style="min-height:36px;padding:0.4rem 0.75rem;font-size:var(--fs-xs)" data-action="focus" data-id="${b.instanceId}">شروع این بخش</button>`
-                : `<span style="font-size:var(--fs-xs);color:var(--color-ink-muted)">استراحت برنامه‌ریزی‌شده</span>`
+                : `<span style="font-size:var(--fs-xs);color:var(--color-ink-muted)">یه استراحت کوچیک</span>`
             }
           </div>
         </div>
@@ -666,8 +663,8 @@ function renderFocusQueue() {
     .map(
       (b) => `
     <div class="summary-row">
-      <span class="k">${toPersianDigits(b.startLabel)} · ${escapeHtml(b.title)}</span>
-      <span class="v">${formatDuration(b.durationMin)}</span>
+      <span class="k">${escapeHtml(b.periodLabel || "")} · ${escapeHtml(b.title)}</span>
+      <span class="v">${typeLabelFa(b.type)}</span>
     </div>`
     )
     .join("");

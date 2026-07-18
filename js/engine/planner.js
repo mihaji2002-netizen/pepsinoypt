@@ -3,7 +3,8 @@ import { getTrack } from "../data/subjects.js";
 import { getPeriod, PERIODS, resolveSuggestions } from "../data/flow.js";
 
 /**
- * Builds a concrete daily timeline from fluid-flow answers + selected suggestions.
+ * Builds a daily plan from fluid-flow answers + selected suggestions.
+ * No clock times — only morning / afternoon / evening buckets.
  */
 
 export function buildDailyPlan(profile, options = {}) {
@@ -28,14 +29,12 @@ export function buildDailyPlan(profile, options = {}) {
   /** @type {ReturnType<typeof cloneBlock>[]} */
   const blocks = [];
 
-  // Keep period order: morning → afternoon → evening
   for (const period of PERIODS) {
     const items = selected.filter((s) => s.period === period.id);
     if (!items.length) continue;
 
     for (const item of items) {
       const periodBlocks = expandSuggestion(item);
-      // Tag period metadata on first real block
       if (periodBlocks.length) {
         periodBlocks[0].periodId = period.id;
         periodBlocks[0].periodLabel = period.label;
@@ -44,13 +43,13 @@ export function buildDailyPlan(profile, options = {}) {
       for (const b of periodBlocks) {
         b.periodId = b.periodId || period.id;
         b.periodLabel = b.periodLabel || period.label;
+        // Keep duration for focus timer only — never expose as a clock schedule
         blocks.push(b);
       }
     }
   }
 
-  const timed = assignPeriodTimes(blocks);
-  const studyBlocks = timed.filter((b) => b.type !== "break");
+  const studyBlocks = blocks.filter((b) => b.type !== "break");
   const totalPlanned = studyBlocks.reduce((s, b) => s + b.durationMin, 0);
 
   return {
@@ -66,9 +65,9 @@ export function buildDailyPlan(profile, options = {}) {
       body: s.body,
       selected: selectedIds.has(s.id),
     })),
-    blocks: timed,
+    blocks,
     stats: {
-      totalBlocks: timed.length,
+      totalBlocks: blocks.length,
       studyBlocks: studyBlocks.length,
       totalMinutes: totalPlanned,
       periods: selected.map((s) => s.period),
@@ -95,14 +94,14 @@ function normalizeAnswers(profile, track) {
     subjectStrength: profile.subjectStrength || "weak",
     nextHeldWeak: Boolean(profile.nextHeldWeak),
     nextHeldId: held?.id || profile.nextHeldId || null,
-    nextHeldName: held?.name || profile.nextHeldName || "امتحان بعدی برگزارشدنی",
+    nextHeldName: held?.name || profile.nextHeldName || "امتحان بعدی‌ای که برگزار می‌شه",
   };
 }
 
 function expandSuggestion(item) {
   return (item.blocks || []).map((spec) => {
     const blockId = spec.blockId || spec.id;
-    const b = cloneBlock(blockId, {
+    return cloneBlock(blockId, {
       durationMin: spec.durationMin,
       subjectId: spec.subjectId ?? null,
       subjectName: spec.subjectName ?? null,
@@ -110,41 +109,7 @@ function expandSuggestion(item) {
       desc: spec.desc,
       suggestionId: item.id,
     });
-    return b;
   });
-}
-
-/**
- * Assign clock times within each period window.
- * Morning / afternoon / evening restart at their own startTime.
- */
-function assignPeriodTimes(blocks) {
-  const cursors = Object.fromEntries(PERIODS.map((p) => [p.id, parseClock(p.startTime)]));
-
-  return blocks.map((b) => {
-    const periodId = b.periodId || "morning";
-    const start = cursors[periodId] ?? parseClock("08:00");
-    const end = start + b.durationMin;
-    cursors[periodId] = end;
-    return {
-      ...b,
-      startMin: start,
-      endMin: end,
-      startLabel: formatClock(start),
-      endLabel: formatClock(end),
-    };
-  });
-}
-
-function parseClock(hhmm) {
-  const [h, m] = (hhmm || "08:00").split(":").map(Number);
-  return h * 60 + m;
-}
-
-export function formatClock(totalMin) {
-  const h = Math.floor(totalMin / 60) % 24;
-  const m = totalMin % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 export function todayKey() {
@@ -159,30 +124,27 @@ function getDayIndex() {
 
 function buildRationale(answers, selected) {
   const parts = [];
-  parts.push(`امتحان بعدی: ${answers.nextExamName}.`);
+  parts.push(`امتحان بعدیت ${answers.nextExamName}ه.`);
   if (answers.examNews === "cancelled") {
-    parts.push("وضعیت: کنسل / تعویق‌شده.");
+    parts.push("کنسل / تعویق خورده.");
     if (answers.subjectStrength === "weak") {
-      parts.push("خودارزیابی: در این درس ضعیفی.");
+      parts.push("گفتی تو این درس ضعیفی.");
       parts.push(
         answers.nextHeldWeak
-          ? "تمرکز بعدازظهر روی امتحان برگزارشدنی‌ای است که در آن ضعفی."
-          : "بعدازظهر روی تست و آزمون جامع می‌رود."
+          ? `ظهر تا عصر برو سراغ ${answers.nextHeldName}.`
+          : "ظهر تا عصر برو تست و آزمون جامع بزن."
       );
     } else {
-      parts.push("خودارزیابی: می‌تونی این درس را ببندی؛ صبح آزمون جامع، ظهر مرور تعویقی.");
+      parts.push("گفتی می‌تونی ببندیش؛ صبح آزمون، ظهر مرور تعویقی.");
     }
   } else {
-    parts.push("خبر رسمی نیست؛ برنامه آماده‌باش و انعطاف‌پذیر است.");
+    parts.push("خبر رسمی نیست؛ برنامه رو نرم نگه داشتیم.");
   }
   const labels = selected.map((s) => getPeriod(s.period).label).join(" · ");
-  if (labels) parts.push(`بازه‌های فعال: ${labels}.`);
+  if (labels) parts.push(`انتخاب‌هات: ${labels}.`);
   return parts.join(" ");
 }
 
-/**
- * Merge completion state from storage into a freshly built plan.
- */
 export function applyCompletionState(plan, completionMap = {}) {
   const doneSet = new Set(completionMap[plan.dateKey] || []);
   return {

@@ -73,8 +73,8 @@ export function assertPlanInvariants(plan, profile) {
   if (new Set(ids).size !== ids.length) errors.push("duplicate instanceId");
 
   for (const b of plan.blocks) {
-    if (!b.startLabel || !b.endLabel) errors.push(`untimed block ${b.id}`);
     if (!(b.durationMin > 0)) errors.push(`bad duration ${b.id}`);
+    if (!b.periodId) errors.push(`missing period on ${b.id}`);
   }
 
   const titles = plan.blocks.map((b) => b.id);

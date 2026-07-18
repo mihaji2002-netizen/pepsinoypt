@@ -2,14 +2,15 @@
  * Catalog of reusable study blocks.
  * type: study | test | review | exam | break | foundation | analysis
  * mode: descriptive | test | mixed
+ *
+ * durationMin is only for the focus timer — the day plan is NOT clock-scheduled.
  */
 
 export const BLOCK_CATALOG = {
-  // ——— آزمون و سنجش ———
   "maz-full": {
     id: "maz-full",
     title: "آزمون جامع ماز",
-    desc: "شبیه‌سازی کامل زمان‌دار؛ بعد از آزمون فقط علامت‌گذاری شک‌ها.",
+    desc: "یه آزمون کامل بزن. بعدش فقط شک‌دارها رو علامت بزن، ولش کن تحلیلش برای بعد.",
     type: "exam",
     mode: "test",
     defaultMin: 180,
@@ -17,8 +18,8 @@ export const BLOCK_CATALOG = {
   },
   "kheili-sabz": {
     id: "kheili-sabz",
-    title: "کار روی خیلی سبز",
-    desc: "حل هدفمند فصل جاری؛ اولویت با تست‌های نشان‌دار و خطادار.",
+    title: "کار روی خیلی‌سبز",
+    desc: "فصل جاری رو هدف بگیر؛ اول تست‌های نشان‌دار و غلط‌هات.",
     type: "test",
     mode: "test",
     defaultMin: 75,
@@ -26,8 +27,8 @@ export const BLOCK_CATALOG = {
   },
   "gozine2": {
     id: "gozine2",
-    title: "آزمون‌های گزینه‌دو",
-    desc: "یک مجموعه زمان‌دار گزینه‌دو با ثبت درصد و تحلیل فوری اشتباهات.",
+    title: "آزمون گزینه‌دو",
+    desc: "یه مجموعه بزن، درصد بگیر، غلط‌هات رو همون‌جا ببین.",
     type: "exam",
     mode: "test",
     defaultMin: 90,
@@ -36,7 +37,7 @@ export const BLOCK_CATALOG = {
   "madares-bartar": {
     id: "madares-bartar",
     title: "آزمون مدارس برتر",
-    desc: "مجموعه سخت‌تر برای تثبیت سطح؛ تمرکز روی مدیریت زمان.",
+    desc: "سخت‌تره؛ برای وقتی که ماز و خیلی‌سبز رو زدی.",
     type: "exam",
     mode: "test",
     defaultMin: 100,
@@ -45,7 +46,7 @@ export const BLOCK_CATALOG = {
   "exam-analysis": {
     id: "exam-analysis",
     title: "تحلیل آزمون",
-    desc: "دسته‌بندی غلط / نزده / شک‌دار؛ استخراج الگوی خطا و برنامه جبران.",
+    desc: "غلط / نزده / شک‌دار رو جدا کن. ببین الگوت چیه.",
     type: "analysis",
     mode: "mixed",
     defaultMin: 60,
@@ -53,19 +54,17 @@ export const BLOCK_CATALOG = {
   },
   "answerkey-to-book": {
     id: "answerkey-to-book",
-    title: "برگشت از پاسخنامه به کتاب",
-    desc: "برای هر غلط: صفحه کتاب درسی → نکته → یک تست مشابه.",
+    title: "از پاسخنامه برو تو کتاب",
+    desc: "هر غلط: برو صفحه کتاب → نکته‌ش رو بکش بیرون → یه تست شبیهش بزن.",
     type: "review",
     mode: "mixed",
     defaultMin: 45,
     tags: ["review", "deep"],
   },
-
-  // ——— شیمی / زیست ———
   "chem-hafziat": {
     id: "chem-hafziat",
-    title: "مرور جزوه حفظیات شیمی استاد",
-    desc: "فقط حفظیات و استثناها؛ بدون حل مسئله در این بلوک.",
+    title: "جزوه حفظیات شیمی استاد",
+    desc: "فقط حفظیات و استثناها؛ مسئله نزن.",
     type: "review",
     mode: "descriptive",
     defaultMin: 40,
@@ -74,20 +73,18 @@ export const BLOCK_CATALOG = {
   },
   "bio-giyahi-summary": {
     id: "bio-giyahi-summary",
-    title: "خلاصه‌نویسی گیاهی",
-    desc: "جدول مقایسه چرخه/آوند/هورمون؛ خروجی یک صفحه خلاصه قابل مرور.",
+    title: "گیاهی",
+    desc: "یه دور گیاهی؛ اگه خواستی یه صفحه خلاصه هم ازش دربیار.",
     type: "study",
     mode: "descriptive",
     defaultMin: 50,
     tags: ["bio", "summary"],
     subjectHint: "bio",
   },
-
-  // ——— پایه و پیش‌خوانی ———
   "pre-read-12": {
     id: "pre-read-12",
-    title: "پیش‌خوانی دروس دوازدهم",
-    desc: "مرور سرفصل و تعاریف فصل بعد؛ بدون فشار تست.",
+    title: "یه نگاه به دوازدهم",
+    desc: "سرفصل و تعریف‌ها؛ تست فشار نذار.",
     type: "study",
     mode: "descriptive",
     defaultMin: 40,
@@ -96,18 +93,16 @@ export const BLOCK_CATALOG = {
   "catchup-10": {
     id: "catchup-10",
     title: "جبران پایه دهم",
-    desc: "مفاهیم پیش‌نیاز دهم مرتبط با فصل جاری؛ مثال + ۲ تست کنترلی.",
+    desc: "همون پیش‌نیاز دهم که به فصل الان وصله؛ مثال + دو تا تست.",
     type: "foundation",
     mode: "descriptive",
     defaultMin: 55,
     tags: ["foundation", "grade10"],
   },
-
-  // ——— بلوک‌های عمومی ———
   "desc-core": {
     id: "desc-core",
-    title: "مطالعه تشریحی کتاب درسی",
-    desc: "خواندن دقیق + حاشیه + پرسش از متن.",
+    title: "مطالعه از کتاب",
+    desc: "خون دقیق، حاشیه بزن، از متن از خودت سؤال بپرس.",
     type: "study",
     mode: "descriptive",
     defaultMin: 60,
@@ -115,8 +110,8 @@ export const BLOCK_CATALOG = {
   },
   "desc-notes": {
     id: "desc-notes",
-    title: "جزوه‌نویسی / نقشه مفهومی",
-    desc: "تبدیل متن به ساختار قابل مرور سریع.",
+    title: "خلاصه‌نویسی",
+    desc: "متن رو تبدیل کن به یه چیزی که بعداً سریع مرور کنی.",
     type: "study",
     mode: "descriptive",
     defaultMin: 45,
@@ -124,8 +119,8 @@ export const BLOCK_CATALOG = {
   },
   "test-targeted": {
     id: "test-targeted",
-    title: "تست هدفمند فصل",
-    desc: "۲۵ تا ۴۰ تست با درصدگیری و علامت‌گذاری.",
+    title: "تست هدفمند",
+    desc: "یه بسته تست از فصل؛ درصد بگیر و علامت بزن.",
     type: "test",
     mode: "test",
     defaultMin: 50,
@@ -134,7 +129,7 @@ export const BLOCK_CATALOG = {
   "test-wrong-bank": {
     id: "test-wrong-bank",
     title: "بانک غلط‌ها",
-    desc: "فقط تست‌های غلط و شک‌دار قبلی؛ بدون تست جدید.",
+    desc: "فقط غلط و شک‌دارهای قبلی؛ تست جدید نه.",
     type: "review",
     mode: "test",
     defaultMin: 35,
@@ -142,8 +137,8 @@ export const BLOCK_CATALOG = {
   },
   "memory-night": {
     id: "memory-night",
-    title: "مرور شبانه حفظیات",
-    desc: "مرور کوتاه دینی / ادبیات / زیست حفظی قبل از خواب.",
+    title: "مرور حفظیات آخر شب",
+    desc: "یه دور کوتاه دینی / ادبیات / چیزای حفظی.",
     type: "review",
     mode: "descriptive",
     defaultMin: 25,
@@ -151,8 +146,8 @@ export const BLOCK_CATALOG = {
   },
   "problem-set": {
     id: "problem-set",
-    title: "حل تشریحی مسئله",
-    desc: "مسائل کتاب و نمونه سؤالات نهایی با نوشتن کامل پاسخ.",
+    title: "حل تشریحی",
+    desc: "مسئله کتاب و نمونه سؤال؛ جواب رو کامل بنویس.",
     type: "study",
     mode: "descriptive",
     defaultMin: 55,
@@ -161,7 +156,7 @@ export const BLOCK_CATALOG = {
   "final-drill": {
     id: "final-drill",
     title: "تمرین امتحان نهایی",
-    desc: "نمونه سؤال نهایی زمان‌دار با معیار تصحیح تشریحی.",
+    desc: "نمونه سؤال نهایی؛ مثل جلسه امتحان بنویس.",
     type: "exam",
     mode: "descriptive",
     defaultMin: 70,
@@ -169,8 +164,8 @@ export const BLOCK_CATALOG = {
   },
   "light-mixed": {
     id: "light-mixed",
-    title: "بلوک دوکاره (تشریحی + تست سبک)",
-    desc: "نیمه‌اول مفهوم، نیمه‌دوم ۵ تا ۱۰ تست کنترلی.",
+    title: "نیمه‌خوندن، نیمه‌تست",
+    desc: "اول مفهوم، بعد ۵–۱۰ تا تست کنترلی.",
     type: "study",
     mode: "mixed",
     defaultMin: 50,
@@ -178,8 +173,8 @@ export const BLOCK_CATALOG = {
   },
   "break-short": {
     id: "break-short",
-    title: "استراحت کوتاه",
-    desc: "دور از میز؛ بدون گوشی شبکه‌اجتماعی.",
+    title: "یه استراحت کوتاه",
+    desc: "بلند شو از میز؛ اینستا و اینا نه.",
     type: "break",
     mode: "mixed",
     defaultMin: 10,
@@ -187,8 +182,8 @@ export const BLOCK_CATALOG = {
   },
   "break-long": {
     id: "break-long",
-    title: "استراحت بلند / وعده غذایی",
-    desc: "وعده + پیاده‌روی کوتاه.",
+    title: "استراحت / غذا",
+    desc: "غذا بخور، یه کم راه برو.",
     type: "break",
     mode: "mixed",
     defaultMin: 40,
@@ -196,8 +191,8 @@ export const BLOCK_CATALOG = {
   },
   "warmup": {
     id: "warmup",
-    title: "گرم‌کردن روز",
-    desc: "مرور سریع برنامه روز و یک صفحه خلاصه دیروز.",
+    title: "گرم کردن روز",
+    desc: "یه نگاه به برنامه امروز و خلاصه دیروز.",
     type: "review",
     mode: "mixed",
     defaultMin: 15,

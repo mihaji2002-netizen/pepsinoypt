@@ -1,5 +1,4 @@
 import { toPersianDigits } from "../utils/helpers.js";
-import { formatDuration } from "../utils/persian-date.js";
 
 /**
  * Export daily plan as PNG via canvas (no external dependency).
@@ -66,7 +65,7 @@ export async function exportPlanImage(plan, meta = {}) {
 
     ctx.fillStyle = "#6b7f8c";
     ctx.font = "500 13px Vazirmatn, Tahoma, sans-serif";
-    const metaLine = `${toPersianDigits(b.startLabel)}–${toPersianDigits(b.endLabel)} · ${formatDuration(b.durationMin)}${b.done ? " · انجام شد" : ""}`;
+    const metaLine = `${b.periodLabel || ""}${b.done ? " · انجام شد" : ""}`;
     ctx.fillText(metaLine, width - pad - 28, y + 46);
 
     y += lineH;
@@ -75,7 +74,7 @@ export async function exportPlanImage(plan, meta = {}) {
   // Footer
   ctx.fillStyle = "#6b7f8c";
   ctx.font = "500 12px Vazirmatn, Tahoma, sans-serif";
-  ctx.fillText("تولیدشده با اپلیکیشن مسیر — برنامه‌ریز نهایی و کنکور", width - pad, height - pad);
+  ctx.fillText("ساخته‌شده با مسیر", width - pad, height - pad);
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   const url = URL.createObjectURL(blob);

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b3a4a" />
+    <meta name="description" content="مسیر — برنامه‌ریز روزانه برای امتحانات نهایی و کنکور؛ آفلاین، بدون ثبت‌نام." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="مسیر" />
+    <title>مسیر | برنامه‌ریز نهایی و کنکور</title>
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/tokens.css" />
+    <link rel="stylesheet" href="./css/base.css" />
+    <link rel="stylesheet" href="./css/layout.css" />
+    <link rel="stylesheet" href="./css/components.css" />
+    <link rel="stylesheet" href="./css/print.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <header class="app-header">
+        <div class="brand" aria-label="برند مسیر">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19c4-2 6-8 8-8s4 6 8 8" stroke-linecap="round" />
+              <circle cx="12" cy="7" r="2.2" fill="currentColor" stroke="none" />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <div class="brand-name">مسیر</div>
+            <div class="brand-tag">برنامه‌ریز نهایی و کنکور</div>
+          </div>
+        </div>
+        <button type="button" class="btn-icon" id="btn-header-settings" aria-label="تنظیمات" title="تنظیمات">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" stroke-linecap="round" />
+          </svg>
+        </button>
+      </header>
+
+      <main class="app-main" id="main">
+        <!-- Landing / Onboarding entry -->
+        <section id="view-landing" class="view" data-view="landing">
+          <div class="landing">
+            <div>
+              <div class="landing-brand anim-fade-up">مسیر</div>
+              <h1 class="landing-headline anim-fade-up" style="animation-delay: 80ms">
+                برنامهٔ روزانهٔ دقیق برای نهایی و کنکور
+              </h1>
+              <p class="landing-sub anim-fade-up" style="animation-delay: 140ms">
+                بدون ثبت‌نام، بدون اینترنت اجباری. موتور قانون‌محور بر اساس پایه، سطح و وضعیت امتحانات می‌سازد.
+              </p>
+              <div class="landing-cta anim-fade-up" style="animation-delay: 200ms">
+                <button type="button" class="btn btn-primary" id="btn-start-wizard">شروع تنظیم برنامه</button>
+                <button type="button" class="btn btn-ghost hidden" id="btn-skip-landing">رفتن به برنامه امروز</button>
+              </div>
+            </div>
+            <div class="landing-visual anim-fade-in" style="animation-delay: 260ms" role="img" aria-label="نمای مسیر مطالعه روزانه">
+              <p class="landing-visual-caption">
+                تایم‌لاین روزانه، تایمر و پومودورو، تیک فعالیت‌ها، موسیقی آرام، و نصب روی موبایل.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Wizard -->
+        <section id="view-wizard" class="view" data-view="wizard">
+          <div class="page-hero">
+            <h1>ساخت برنامه</h1>
+            <p>چند سؤال کوتاه؛ خروجی یک تایم‌لاین قابل اجرا برای امروز.</p>
+          </div>
+          <div class="wizard-steps" id="wizard-steps" aria-hidden="true"></div>
+          <div class="panel panel-solid" id="wizard-panel"></div>
+          <div class="wizard-footer">
+            <button type="button" class="btn btn-ghost" id="wizard-prev">قبلی</button>
+            <button type="button" class="btn btn-primary" id="wizard-next">بعدی</button>
+          </div>
+        </section>
+
+        <!-- Today timeline -->
+        <section id="view-today" class="view" data-view="today">
+          <div id="install-banner" class="install-banner">
+            <div class="row-between">
+              <div>
+                <strong>نصب مسیر روی موبایل</strong>
+                <p style="font-size: var(--fs-sm); color: var(--color-ink-soft); margin-top: 4px">
+                  دسترسی سریع و کار آفلاین.
+                </p>
+              </div>
+              <button type="button" class="btn btn-accent" id="btn-install">نصب</button>
+            </div>
+          </div>
+
+          <div class="day-header">
+            <div>
+              <div class="day-date" id="today-date"></div>
+              <h1 id="today-title" style="font-size: var(--fs-2xl); color: var(--color-primary); margin-top: 4px">
+                برنامه امروز
+              </h1>
+            </div>
+            <div class="panel" style="padding: var(--space-4)">
+              <div class="row-between">
+                <div>
+                  <div style="font-size: var(--fs-xs); color: var(--color-ink-muted)">پیشرفت روز</div>
+                  <div id="progress-text" style="font-size: var(--fs-xl); font-weight: 800; color: var(--color-primary)">
+                    ۰٪
+                  </div>
+                </div>
+                <div class="progress-ring-wrap" aria-hidden="true">
+                  <svg width="120" height="120" viewBox="0 0 120 120">
+                    <circle class="progress-ring-bg" cx="60" cy="60" r="52" />
+                    <circle class="progress-ring-fg" id="progress-ring" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7" />
+                  </svg>
+                  <div class="progress-ring-label" id="progress-ring-label">۰٪</div>
+                </div>
+              </div>
+              <div class="progress-bar" style="margin-top: var(--space-3)"><span id="progress-bar" style="width: 0%"></span></div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-bottom: var(--space-4); flex-wrap: wrap">
+            <button type="button" class="btn btn-primary" id="btn-start-focus">اجرای برنامه</button>
+            <button type="button" class="btn btn-ghost" id="btn-export">خروجی تصویر</button>
+            <button type="button" class="btn btn-ghost" id="btn-print">چاپ</button>
+            <button type="button" class="btn btn-ghost" id="btn-rebuild">بازسازی امروز</button>
+          </div>
+
+          <p class="engine-note" id="engine-note"></p>
+          <div class="timeline" id="timeline" style="margin-top: var(--space-5)"></div>
+        </section>
+
+        <!-- Focus / execution -->
+        <section id="view-focus" class="view" data-view="focus">
+          <div class="page-hero">
+            <h1>حالت اجرا</h1>
+            <p>تایمر عادی یا پومودورو؛ استراحت قابل تنظیم.</p>
+          </div>
+          <div class="panel focus-shell">
+            <div class="timer-mode-tabs" id="timer-mode-tabs">
+              <button type="button" class="choice selected" data-mode="normal">
+                <span class="choice-title">تایمر عادی</span>
+              </button>
+              <button type="button" class="choice" data-mode="pomodoro">
+                <span class="choice-title">پومودورو</span>
+              </button>
+            </div>
+
+            <div class="focus-current">
+              <div class="label">فعالیت جاری</div>
+              <div class="title" id="focus-block-title">—</div>
+            </div>
+
+            <div class="timer-display" id="timer-display">۲۵:۰۰</div>
+            <div style="font-size: var(--fs-sm); color: var(--color-ink-muted)" id="timer-phase-label">آماده</div>
+
+            <div class="timer-controls">
+              <button type="button" class="btn btn-ghost" id="timer-reset">ریست</button>
+              <button type="button" class="btn btn-primary" id="timer-toggle">شروع</button>
+              <button type="button" class="btn btn-ghost" id="timer-done">انجام شد</button>
+            </div>
+
+            <div class="pomodoro-stats">
+              <div class="stat-box">
+                <div class="n" id="stat-pomos">۰</div>
+                <div class="l">پومودورو</div>
+              </div>
+              <div class="stat-box">
+                <div class="n" id="stat-phase">کار</div>
+                <div class="l">فاز</div>
+              </div>
+              <div class="stat-box">
+                <div class="n" id="stat-progress">۰٪</div>
+                <div class="l">پیشرفت روز</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel music-panel" style="margin-top: var(--space-4)">
+            <div class="row-between">
+              <strong>موسیقی آرام</strong>
+              <button type="button" class="btn btn-ghost" id="music-toggle">پخش</button>
+            </div>
+            <div class="music-visual" id="music-visual" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="field">
+              <label for="music-track">قطعه</label>
+              <select id="music-track"></select>
+            </div>
+            <div class="field">
+              <label for="music-volume">میزان صدا: <span class="range-value" id="music-volume-val">۳۵٪</span></label>
+              <input type="range" id="music-volume" min="0" max="100" value="35" />
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top: var(--space-4)">
+            <h2 class="panel-title" style="font-size: var(--fs-md)">فعالیت بعدی</h2>
+            <div id="focus-queue" class="stack-sm"></div>
+          </div>
+        </section>
+
+        <!-- Settings -->
+        <section id="view-settings" class="view" data-view="settings">
+          <div class="page-hero">
+            <h1>تنظیمات</h1>
+            <p>پروفایل، زمان استراحت، و ابزارها.</p>
+          </div>
+
+          <div class="panel stack">
+            <h2 class="panel-title">خلاصه پروفایل</h2>
+            <div class="summary-list" id="profile-summary"></div>
+            <button type="button" class="btn btn-primary btn-block" id="btn-edit-profile">ویرایش پروفایل</button>
+          </div>
+
+          <div class="panel stack" style="margin-top: var(--space-4)">
+            <h2 class="panel-title">زمان‌ها</h2>
+            <div class="field">
+              <label for="set-break-short">استراحت کوتاه (دقیقه)</label>
+              <input type="number" id="set-break-short" min="5" max="30" />
+            </div>
+            <div class="field">
+              <label for="set-break-long">استراحت بلند (دقیقه)</label>
+              <input type="number" id="set-break-long" min="20" max="90" />
+            </div>
+            <div class="field">
+              <label for="set-pomo-work">پومودورو — کار</label>
+              <input type="number" id="set-pomo-work" min="15" max="60" />
+            </div>
+            <div class="field">
+              <label for="set-pomo-break">پومودورو — استراحت</label>
+              <input type="number" id="set-pomo-break" min="3" max="20" />
+            </div>
+            <button type="button" class="btn btn-accent btn-block" id="btn-save-settings">ذخیره تنظیمات</button>
+          </div>
+
+          <div class="panel stack" style="margin-top: var(--space-4)">
+            <h2 class="panel-title">ابزار و وضعیت</h2>
+            <button type="button" class="btn btn-ghost btn-block" id="btn-run-tests">اجرای تست سناریوها</button>
+            <pre id="test-output" class="hidden" style="white-space: pre-wrap; font-size: 12px; background: var(--color-primary-tint); padding: 12px; border-radius: 8px; max-height: 240px; overflow: auto"></pre>
+            <button type="button" class="btn btn-danger btn-block" id="btn-reset-all">پاک کردن داده‌های محلی</button>
+            <p style="font-size: var(--fs-xs); color: var(--color-ink-muted)">
+              نسخه ۱.۰.۰ · کاملاً استاتیک · داده فقط روی دستگاه شماست
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <nav class="app-nav" id="app-nav" aria-label="ناوبری اصلی">
+        <button type="button" class="nav-item" data-nav="landing" aria-label="خانه">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-8.5z" stroke-linejoin="round"/></svg>
+          <span>خانه</span>
+        </button>
+        <button type="button" class="nav-item" data-nav="today" aria-label="امروز">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16" stroke-linecap="round"/></svg>
+          <span>امروز</span>
+        </button>
+        <button type="button" class="nav-item" data-nav="focus" aria-label="تمرکز">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2" stroke-linecap="round"/></svg>
+          <span>تمرکز</span>
+        </button>
+        <button type="button" class="nav-item" data-nav="settings" aria-label="تنظیمات">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" stroke-linecap="round"/></svg>
+          <span>تنظیمات</span>
+        </button>
+      </nav>
+    </div>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

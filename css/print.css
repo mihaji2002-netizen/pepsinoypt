@@ -1,0 +1,60 @@
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  body::before,
+  .app-header,
+  .app-nav,
+  .toast,
+  .install-banner,
+  .timeline-actions,
+  .landing-cta,
+  .wizard-footer,
+  .btn,
+  .music-panel,
+  #view-focus,
+  #view-settings {
+    display: none !important;
+  }
+
+  .app-main {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .view {
+    display: none !important;
+  }
+
+  #view-today.active,
+  #view-today {
+    display: block !important;
+  }
+
+  .panel,
+  .timeline-body {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+
+  .timeline::before {
+    background: #ccc;
+  }
+
+  .progress-bar > span {
+    animation: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .timeline-dot {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

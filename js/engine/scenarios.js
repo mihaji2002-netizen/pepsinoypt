@@ -1,25 +1,32 @@
-import { RATIOS } from "../data/subjects.js";
 import { buildDailyPlan } from "./planner.js";
-import { computePolicy, computeModeSplit } from "./rules.js";
+import { computePolicy } from "./rules.js";
+import { TRACKS } from "../data/subjects.js";
 
 /**
- * Exhaustive scenario matrix for grades × fields × exam status × levels × ratios.
+ * Scenario matrix for fluid coaching paths.
  */
 
 export const GRADES = [11, 12];
 export const FIELDS = ["exp", "math"];
-export const EXAM_STATUSES = ["normal", "postponed", "uncertain"];
-export const LEVELS = ["weak", "mid", "strong"];
+export const EXAM_NEWS_LIST = ["cancelled", "noNews"];
+export const STRENGTHS = ["weak", "ok"];
+export const NEXT_HELD_WEAK = [true, false];
 
 export function defaultProfile(overrides = {}) {
+  const grade = overrides.grade ?? 12;
+  const field = overrides.field ?? "exp";
+  const track = TRACKS[`${grade}-${field}`];
+  const first = track.subjects[0];
+  const second = track.subjects[1] || first;
   return {
-    grade: 12,
-    field: "exp",
-    examStatus: "normal",
-    level: "mid",
-    ratioId: "60-40",
-    studyHours: 8,
-    startTime: "08:00",
+    grade,
+    field,
+    nextExamId: first.id,
+    examNews: "cancelled",
+    subjectStrength: "weak",
+    nextHeldWeak: false,
+    nextHeldId: second.id,
+    selectedSuggestions: null,
     breakShortMin: 10,
     breakLongMin: 40,
     ...overrides,
@@ -30,18 +37,20 @@ export function allScenarioProfiles() {
   const profiles = [];
   for (const grade of GRADES) {
     for (const field of FIELDS) {
-      for (const examStatus of EXAM_STATUSES) {
-        for (const level of LEVELS) {
-          for (const ratio of RATIOS) {
-            profiles.push(
-              defaultProfile({
-                grade,
-                field,
-                examStatus,
-                level,
-                ratioId: ratio.id,
-              })
-            );
+      for (const examNews of EXAM_NEWS_LIST) {
+        if (examNews === "noNews") {
+          profiles.push(defaultProfile({ grade, field, examNews }));
+          continue;
+        }
+        for (const subjectStrength of STRENGTHS) {
+          if (subjectStrength === "ok") {
+            profiles.push(defaultProfile({ grade, field, examNews, subjectStrength }));
+          } else {
+            for (const nextHeldWeak of NEXT_HELD_WEAK) {
+              profiles.push(
+                defaultProfile({ grade, field, examNews, subjectStrength, nextHeldWeak })
+              );
+            }
           }
         }
       }
@@ -52,9 +61,8 @@ export function allScenarioProfiles() {
 
 export function runScenario(profile, dayIndex = 0) {
   const policy = computePolicy(profile);
-  const split = computeModeSplit(profile);
   const plan = buildDailyPlan(profile, { dayIndex, dateKey: `test-${dayIndex}` });
-  return { profile, policy, split, plan };
+  return { profile, policy, plan };
 }
 
 export function assertPlanInvariants(plan, profile) {
@@ -64,27 +72,40 @@ export function assertPlanInvariants(plan, profile) {
   const ids = plan.blocks.map((b) => b.instanceId);
   if (new Set(ids).size !== ids.length) errors.push("duplicate instanceId");
 
-  const hasBreak = plan.blocks.some((b) => b.type === "break");
-  if (profile.studyHours >= 4 && !hasBreak) errors.push("missing breaks for long day");
-
-  // Required specialty blocks appear under expected conditions
-  const titles = plan.blocks.map((b) => b.id);
-  if (profile.grade === 11 && !titles.includes("pre-read-12")) {
-    errors.push("11th grade missing pre-read-12");
-  }
-  if ((profile.level === "weak" || profile.examStatus === "postponed") && !titles.includes("catchup-10")) {
-    errors.push("missing catchup-10");
-  }
-  if (profile.field === "exp" && !titles.includes("bio-giyahi-summary")) {
-    errors.push("exp missing bio-giyahi-summary");
-  }
-  if (!titles.includes("chem-hafziat")) {
-    errors.push("missing chem-hafziat");
-  }
-
   for (const b of plan.blocks) {
     if (!b.startLabel || !b.endLabel) errors.push(`untimed block ${b.id}`);
     if (!(b.durationMin > 0)) errors.push(`bad duration ${b.id}`);
+  }
+
+  const titles = plan.blocks.map((b) => b.id);
+  const periodStarts = plan.blocks.filter((b) => b.isPeriodStart);
+  if (!periodStarts.length) errors.push("missing period starts");
+
+  if (profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
+    if (!titles.includes("maz-full") && !titles.includes("gozine2")) {
+      errors.push("ok-path missing mock exam");
+    }
+    if (!titles.includes("chem-hafziat")) errors.push("ok-path missing chem-hafziat");
+  }
+
+  if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
+    const hasPostponedReview = plan.blocks.some(
+      (b) => b.subjectId === profile.nextExamId && b.type !== "break"
+    );
+    if (!hasPostponedReview) errors.push("weak-path missing postponed subject work");
+  }
+
+  if (profile.examNews === "noNews") {
+    if (!plan.blocks.some((b) => b.mode === "mixed" || b.id === "light-mixed")) {
+      // light-mixed may be present; also accept kheili-sabz flexibility
+      if (!titles.includes("kheili-sabz") && !titles.includes("light-mixed")) {
+        errors.push("noNews missing flexible blocks");
+      }
+    }
+  }
+
+  if (profile.field === "exp" && profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
+    if (!titles.includes("bio-giyahi-summary")) errors.push("exp ok-path missing giyahi");
   }
 
   return errors;
@@ -127,37 +148,35 @@ export function runAllScenarioTests() {
 }
 
 export function scenarioKey(p) {
-  return `g${p.grade}-${p.field}-${p.examStatus}-${p.level}-${p.ratioId}`;
+  const held = p.subjectStrength === "weak" ? `-held${p.nextHeldWeak ? "W" : "S"}` : "";
+  return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength || "na"}${held}`;
 }
 
 /** Representative showcase scenarios for UI demos / docs */
 export const SHOWCASE = [
   defaultProfile({
-    grade: 11,
+    grade: 12,
     field: "exp",
-    examStatus: "postponed",
-    level: "weak",
-    ratioId: "80-20",
-  }),
-  defaultProfile({
-    grade: 11,
-    field: "math",
-    examStatus: "uncertain",
-    level: "mid",
-    ratioId: "60-40",
+    examNews: "cancelled",
+    subjectStrength: "weak",
+    nextHeldWeak: true,
   }),
   defaultProfile({
     grade: 12,
     field: "exp",
-    examStatus: "normal",
-    level: "strong",
-    ratioId: "40-60",
+    examNews: "cancelled",
+    subjectStrength: "weak",
+    nextHeldWeak: false,
   }),
   defaultProfile({
     grade: 12,
     field: "math",
-    examStatus: "postponed",
-    level: "mid",
-    ratioId: "70-30",
+    examNews: "cancelled",
+    subjectStrength: "ok",
+  }),
+  defaultProfile({
+    grade: 11,
+    field: "exp",
+    examNews: "noNews",
   }),
 ];

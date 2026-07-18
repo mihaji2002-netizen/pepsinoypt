@@ -9,8 +9,10 @@ import {
   setOnboardingDone,
   clearAll,
 } from "./core/storage.js";
-import { buildDailyPlan, applyCompletionState, calcProgress, todayKey } from "./engine/planner.js";
-import { EXAM_STATUSES, LEVELS, RATIOS, TRACKS } from "./data/subjects.js";
+import { buildDailyPlan, applyCompletionState, calcProgress, todayKey, previewSuggestions } from "./engine/planner.js";
+import { TRACKS } from "./data/subjects.js";
+import { EXAM_NEWS, SUBJECT_STRENGTH, getPeriod } from "./data/flow.js";
+import { describeProfile } from "./engine/rules.js";
 import { runAllScenarioTests } from "./engine/scenarios.js";
 import { FocusTimer } from "./components/timer.js";
 import { AmbientPlayer } from "./components/music.js";
@@ -39,13 +41,22 @@ const timer = new FocusTimer({
   onPhaseChange: () => renderTimer(timer.snapshot()),
 });
 
-const WIZARD_STEPS = [
-  { id: "track", title: "پایه و رشته" },
-  { id: "exam", title: "وضعیت امتحانات" },
-  { id: "level", title: "سطح دانش‌آموز" },
-  { id: "ratio", title: "نسبت مطالعه" },
-  { id: "time", title: "زمان روز" },
-];
+function wizardStepsFor(draft) {
+  const steps = [
+    { id: "grade", title: "پایه" },
+    { id: "field", title: "رشته" },
+    { id: "nextExam", title: "امتحان بعدی" },
+    { id: "examNews", title: "وضعیت خبر" },
+  ];
+  if (draft?.examNews === "cancelled") {
+    steps.push({ id: "strength", title: "سطح در این درس" });
+    if (draft.subjectStrength === "weak") {
+      steps.push({ id: "nextHeld", title: "امتحان برگزارشدنی" });
+    }
+  }
+  steps.push({ id: "suggestions", title: "پیشنهادهای روز" });
+  return steps;
+}
 
 function init() {
   state.profile = loadProfile();
@@ -73,7 +84,7 @@ function bindGlobal() {
       const view = btn.dataset.nav;
       if (view === "today" || view === "focus" || view === "settings") {
         if (!state.profile) {
-          showToast("اول پروفایل را تنظیم کنید");
+          showToast("اول برنامه را بساز");
           showView("wizard");
           return;
         }
@@ -117,7 +128,6 @@ function bindGlobal() {
     showToast("برنامه امروز بازسازی شد");
   });
 
-  // Timer
   $("#timer-mode-tabs")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-mode]");
     if (!btn) return;
@@ -139,7 +149,6 @@ function bindGlobal() {
   });
   $("#timer-done")?.addEventListener("click", () => completeCurrentFocus());
 
-  // Settings
   $("#btn-edit-profile")?.addEventListener("click", () => startWizard(state.profile));
   $("#btn-save-settings")?.addEventListener("click", saveSettingsFromUi);
   $("#btn-run-tests")?.addEventListener("click", () => {
@@ -182,16 +191,23 @@ function showView(name) {
 /* ——— Wizard ——— */
 function startWizard(existing = null) {
   state.wizardStep = 0;
+  const track = existing ? TRACKS[`${existing.grade}-${existing.field}`] : TRACKS["12-exp"];
+  const first = track.subjects[0];
+  const second = track.subjects[1] || first;
   state.wizardDraft = existing
-    ? { ...existing }
+    ? {
+        ...existing,
+        selectedSuggestions: existing.selectedSuggestions ? [...existing.selectedSuggestions] : null,
+      }
     : {
         grade: 12,
         field: "exp",
-        examStatus: "normal",
-        level: "mid",
-        ratioId: "60-40",
-        studyHours: 8,
-        startTime: "08:00",
+        nextExamId: first.id,
+        examNews: "cancelled",
+        subjectStrength: "weak",
+        nextHeldWeak: false,
+        nextHeldId: second.id,
+        selectedSuggestions: null,
         breakShortMin: state.settings.breakShortMin ?? 10,
         breakLongMin: state.settings.breakLongMin ?? 40,
       };
@@ -199,153 +215,257 @@ function startWizard(existing = null) {
   showView("wizard");
 }
 
+function currentSteps() {
+  return wizardStepsFor(state.wizardDraft);
+}
+
 function renderWizard() {
+  const steps = currentSteps();
+  if (state.wizardStep >= steps.length) state.wizardStep = steps.length - 1;
+
   const stepsEl = $("#wizard-steps");
-  stepsEl.innerHTML = WIZARD_STEPS.map(
-    (_, i) =>
-      `<div class="wizard-step-dot ${i === state.wizardStep ? "active" : ""} ${i < state.wizardStep ? "done" : ""}"></div>`
-  ).join("");
+  stepsEl.innerHTML = steps
+    .map(
+      (_, i) =>
+        `<div class="wizard-step-dot ${i === state.wizardStep ? "active" : ""} ${i < state.wizardStep ? "done" : ""}"></div>`
+    )
+    .join("");
 
   const panel = $("#wizard-panel");
-  const step = WIZARD_STEPS[state.wizardStep];
+  const step = steps[state.wizardStep];
   const d = state.wizardDraft;
+  const track = TRACKS[`${d.grade}-${d.field}`];
 
   $("#wizard-prev").disabled = state.wizardStep === 0;
-  $("#wizard-next").textContent = state.wizardStep === WIZARD_STEPS.length - 1 ? "ساخت برنامه" : "بعدی";
+  $("#wizard-next").textContent = state.wizardStep === steps.length - 1 ? "ساخت برنامه" : "بعدی";
 
-  if (step.id === "track") {
+  if (step.id === "grade") {
     panel.innerHTML = `
-      <h2 class="panel-title">${step.title}</h2>
-      <p class="panel-desc">مسیر تحصیلی مشخص می‌کند چه درس‌هایی و چه بلوک‌هایی پیشنهاد شوند.</p>
-      <div class="choice-grid cols-2" id="choice-track">
-        ${Object.values(TRACKS)
+      <h2 class="panel-title">پایه‌ات چیه؟</h2>
+      <p class="panel-desc">بر اساس پایه، مسیر پیشنهادها کمی فرق می‌کند.</p>
+      <div class="choice-grid cols-2" id="choice-grade">
+        <button type="button" class="choice ${d.grade === 11 ? "selected" : ""}" data-grade="11">
+          <span class="choice-title">یازدهم</span>
+          <span class="choice-meta">نهایی + آماده‌سازی دوازدهم</span>
+        </button>
+        <button type="button" class="choice ${d.grade === 12 ? "selected" : ""}" data-grade="12">
+          <span class="choice-title">دوازدهم</span>
+          <span class="choice-meta">نهایی و کنکور — برنامهٔ سیال</span>
+        </button>
+      </div>`;
+    panel.querySelector("#choice-grade").onclick = (e) => {
+      const btn = e.target.closest(".choice");
+      if (!btn) return;
+      d.grade = Number(btn.dataset.grade);
+      syncSubjectsAfterTrackChange(d);
+      renderWizard();
+    };
+  } else if (step.id === "field") {
+    panel.innerHTML = `
+      <h2 class="panel-title">رشته‌ات؟</h2>
+      <p class="panel-desc">برای لیست دروس امتحان بعدی لازم است.</p>
+      <div class="choice-grid cols-2" id="choice-field">
+        <button type="button" class="choice ${d.field === "exp" ? "selected" : ""}" data-field="exp">
+          <span class="choice-title">تجربی</span>
+        </button>
+        <button type="button" class="choice ${d.field === "math" ? "selected" : ""}" data-field="math">
+          <span class="choice-title">ریاضی</span>
+        </button>
+      </div>`;
+    panel.querySelector("#choice-field").onclick = (e) => {
+      const btn = e.target.closest(".choice");
+      if (!btn) return;
+      d.field = btn.dataset.field;
+      syncSubjectsAfterTrackChange(d);
+      renderWizard();
+    };
+  } else if (step.id === "nextExam") {
+    panel.innerHTML = `
+      <h2 class="panel-title">امتحان بعدیت چیه؟</h2>
+      <p class="panel-desc">از بین دروس ${track.label} یکی را انتخاب کن.</p>
+      <div class="choice-grid" id="choice-exam-subj">
+        ${track.subjects
           .map(
-            (t) => `
-          <button type="button" class="choice ${d.grade === t.grade && d.field === t.field ? "selected" : ""}" data-grade="${t.grade}" data-field="${t.field}">
-            <span class="choice-title">${t.label}</span>
-            <span class="choice-meta">${t.subjects.length} درس اصلی</span>
+            (s) => `
+          <button type="button" class="choice ${d.nextExamId === s.id ? "selected" : ""}" data-id="${s.id}">
+            <span class="choice-title">${s.name}</span>
           </button>`
           )
           .join("")}
       </div>`;
-    panel.querySelector("#choice-track").onclick = (e) => {
+    panel.querySelector("#choice-exam-subj").onclick = (e) => {
       const btn = e.target.closest(".choice");
       if (!btn) return;
-      d.grade = Number(btn.dataset.grade);
-      d.field = btn.dataset.field;
+      d.nextExamId = btn.dataset.id;
+      if (d.nextHeldId === d.nextExamId) {
+        const alt = track.subjects.find((s) => s.id !== d.nextExamId);
+        if (alt) d.nextHeldId = alt.id;
+      }
       renderWizard();
     };
-  } else if (step.id === "exam") {
+  } else if (step.id === "examNews") {
     panel.innerHTML = `
-      <h2 class="panel-title">${step.title}</h2>
-      <p class="panel-desc">وضعیت امتحانات وزن تشریحی/تستی و بلوک‌های جبرانی را عوض می‌کند.</p>
-      <div class="choice-grid" id="choice-exam">
-        ${Object.values(EXAM_STATUSES)
+      <h2 class="panel-title">وضعیت این امتحان؟</h2>
+      <p class="panel-desc">آخرین خبری که داری را بگو تا پیشنهادها عوض شود.</p>
+      <div class="choice-grid" id="choice-news">
+        ${Object.values(EXAM_NEWS)
           .map(
             (s) => `
-          <button type="button" class="choice ${d.examStatus === s.id ? "selected" : ""}" data-id="${s.id}">
+          <button type="button" class="choice ${d.examNews === s.id ? "selected" : ""}" data-id="${s.id}">
             <span class="choice-title">${s.label}</span>
             <span class="choice-meta">${s.desc}</span>
           </button>`
           )
           .join("")}
       </div>`;
-    panel.querySelector("#choice-exam").onclick = (e) => {
+    panel.querySelector("#choice-news").onclick = (e) => {
       const btn = e.target.closest(".choice");
       if (!btn) return;
-      d.examStatus = btn.dataset.id;
+      d.examNews = btn.dataset.id;
+      d.selectedSuggestions = null;
       renderWizard();
     };
-  } else if (step.id === "level") {
+  } else if (step.id === "strength") {
     panel.innerHTML = `
-      <h2 class="panel-title">${step.title}</h2>
-      <p class="panel-desc">سطح، شدت آزمون و نیاز به جبران پایه را تعیین می‌کند.</p>
-      <div class="choice-grid cols-3" id="choice-level">
-        ${Object.values(LEVELS)
+      <h2 class="panel-title">در «${escapeHtml(subjectName(d))}» چطوری؟</h2>
+      <p class="panel-desc">این انتخاب مسیر صبح و ظهر را عوض می‌کند.</p>
+      <div class="choice-grid" id="choice-strength">
+        ${Object.values(SUBJECT_STRENGTH)
           .map(
-            (l) => `
-          <button type="button" class="choice ${d.level === l.id ? "selected" : ""}" data-id="${l.id}">
-            <span class="choice-title">${l.label}</span>
+            (s) => `
+          <button type="button" class="choice ${d.subjectStrength === s.id ? "selected" : ""}" data-id="${s.id}">
+            <span class="choice-title">${s.label}</span>
+            <span class="choice-meta">${s.desc}</span>
           </button>`
           )
           .join("")}
       </div>`;
-    panel.querySelector("#choice-level").onclick = (e) => {
+    panel.querySelector("#choice-strength").onclick = (e) => {
       const btn = e.target.closest(".choice");
       if (!btn) return;
-      d.level = btn.dataset.id;
+      d.subjectStrength = btn.dataset.id;
+      d.selectedSuggestions = null;
       renderWizard();
     };
-  } else if (step.id === "ratio") {
+  } else if (step.id === "nextHeld") {
     panel.innerHTML = `
-      <h2 class="panel-title">${step.title}</h2>
-      <p class="panel-desc">نسبت پایه؛ موتور بر اساس سطح و وضعیت امتحان آن را تنظیم می‌کند.</p>
-      <div class="choice-grid" id="choice-ratio">
-        ${RATIOS.map(
-          (r) => `
-          <button type="button" class="choice ${d.ratioId === r.id ? "selected" : ""}" data-id="${r.id}">
-            <span class="choice-title">${r.label}</span>
-          </button>`
-        ).join("")}
+      <h2 class="panel-title">امتحان بعدی‌ای که برگزار می‌شه رو ضعیفی؟</h2>
+      <p class="panel-desc">اگر آره، بعدازظهر همان درس را کار می‌کنی. اگر نه، می‌رویم سراغ تست و آزمون جامع.</p>
+      <div class="choice-grid cols-2" id="choice-held-weak" style="margin-bottom: var(--space-4)">
+        <button type="button" class="choice ${d.nextHeldWeak ? "selected" : ""}" data-weak="1">
+          <span class="choice-title">آره، ضعیفم</span>
+        </button>
+        <button type="button" class="choice ${!d.nextHeldWeak ? "selected" : ""}" data-weak="0">
+          <span class="choice-title">نه، ضعیف نیستم</span>
+        </button>
+      </div>
+      <div class="field ${d.nextHeldWeak ? "" : "hidden"}" id="held-subject-wrap">
+        <label>کدام امتحان برگزارشدنی؟</label>
+        <div class="choice-grid" id="choice-held-subj">
+          ${track.subjects
+            .filter((s) => s.id !== d.nextExamId)
+            .map(
+              (s) => `
+            <button type="button" class="choice ${d.nextHeldId === s.id ? "selected" : ""}" data-id="${s.id}">
+              <span class="choice-title">${s.name}</span>
+            </button>`
+            )
+            .join("")}
+        </div>
       </div>`;
-    panel.querySelector("#choice-ratio").onclick = (e) => {
+    panel.querySelector("#choice-held-weak").onclick = (e) => {
       const btn = e.target.closest(".choice");
       if (!btn) return;
-      d.ratioId = btn.dataset.id;
+      d.nextHeldWeak = btn.dataset.weak === "1";
+      d.selectedSuggestions = null;
       renderWizard();
     };
-  } else if (step.id === "time") {
+    panel.querySelector("#choice-held-subj")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".choice");
+      if (!btn) return;
+      d.nextHeldId = btn.dataset.id;
+      d.selectedSuggestions = null;
+      renderWizard();
+    });
+  } else if (step.id === "suggestions") {
+    const suggestions = previewSuggestions(d);
+    if (!d.selectedSuggestions) {
+      d.selectedSuggestions = suggestions.map((s) => s.id);
+    }
+    const selected = new Set(d.selectedSuggestions);
     panel.innerHTML = `
-      <h2 class="panel-title">${step.title}</h2>
-      <p class="panel-desc">ساعت شروع و حجم مطالعه روزانه.</p>
-      <div class="stack">
-        <div class="field">
-          <label for="w-hours">ساعات مطالعه مفید: <span class="range-value" id="w-hours-val">${toPersianDigits(d.studyHours)}</span></label>
-          <input type="range" id="w-hours" min="4" max="12" step="0.5" value="${d.studyHours}" />
-        </div>
-        <div class="field">
-          <label for="w-start">ساعت شروع</label>
-          <input type="time" id="w-start" value="${d.startTime}" />
-        </div>
-        <div class="grid-2">
-          <div class="field">
-            <label for="w-break-s">استراحت کوتاه (دقیقه)</label>
-            <input type="number" id="w-break-s" min="5" max="30" value="${d.breakShortMin}" />
-          </div>
-          <div class="field">
-            <label for="w-break-l">استراحت بلند (دقیقه)</label>
-            <input type="number" id="w-break-l" min="20" max="90" value="${d.breakLongMin}" />
-          </div>
-        </div>
+      <h2 class="panel-title">پیشنهادهای ساخت برنامهٔ امروز</h2>
+      <p class="panel-desc">هر کدام را که می‌خواهی در روزت باشد انتخاب کن. زمان‌ها به صورت بازهٔ صبح تا ظهر / ظهر تا عصر / عصر تا شب چیده می‌شوند.</p>
+      <div class="suggestion-list" id="choice-suggestions">
+        ${suggestions
+          .map((s) => {
+            const period = getPeriod(s.period);
+            const on = selected.has(s.id);
+            return `
+            <button type="button" class="suggestion-card ${on ? "selected" : ""}" data-id="${s.id}" aria-pressed="${on}">
+              <div class="suggestion-period">${period.label}<span>${period.hint}</span></div>
+              <div class="suggestion-title">${escapeHtml(s.title)}</div>
+              <p class="suggestion-body">${escapeHtml(s.body)}</p>
+              <div class="suggestion-check">${on ? "انتخاب شد ✓" : "برای افزودن بزن"}</div>
+            </button>`;
+          })
+          .join("")}
       </div>`;
-    $("#w-hours").oninput = (e) => {
-      d.studyHours = Number(e.target.value);
-      $("#w-hours-val").textContent = toPersianDigits(d.studyHours);
-    };
-    $("#w-start").onchange = (e) => {
-      d.startTime = e.target.value;
-    };
-    $("#w-break-s").onchange = (e) => {
-      d.breakShortMin = Number(e.target.value);
-    };
-    $("#w-break-l").onchange = (e) => {
-      d.breakLongMin = Number(e.target.value);
+    panel.querySelector("#choice-suggestions").onclick = (e) => {
+      const btn = e.target.closest(".suggestion-card");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const set = new Set(d.selectedSuggestions);
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      d.selectedSuggestions = [...set];
+      renderWizard();
     };
   }
 }
 
+function syncSubjectsAfterTrackChange(d) {
+  const track = TRACKS[`${d.grade}-${d.field}`];
+  if (!track) return;
+  if (!track.subjects.some((s) => s.id === d.nextExamId)) {
+    d.nextExamId = track.subjects[0].id;
+  }
+  if (!track.subjects.some((s) => s.id === d.nextHeldId) || d.nextHeldId === d.nextExamId) {
+    d.nextHeldId = (track.subjects.find((s) => s.id !== d.nextExamId) || track.subjects[0]).id;
+  }
+  d.selectedSuggestions = null;
+}
+
+function subjectName(d) {
+  const track = TRACKS[`${d.grade}-${d.field}`];
+  return track?.subjects?.find((s) => s.id === d.nextExamId)?.name || "این درس";
+}
+
 function wizardNav(dir) {
+  const steps = currentSteps();
   if (dir < 0) {
     state.wizardStep = Math.max(0, state.wizardStep - 1);
     renderWizard();
     return;
   }
-  if (state.wizardStep < WIZARD_STEPS.length - 1) {
+
+  const step = steps[state.wizardStep];
+  if (step.id === "suggestions") {
+    if (!state.wizardDraft.selectedSuggestions?.length) {
+      showToast("حداقل یک پیشنهاد را انتخاب کن");
+      return;
+    }
+  }
+
+  if (state.wizardStep < steps.length - 1) {
     state.wizardStep += 1;
+    // Clamp if step list shrank (e.g. leaving cancelled path)
+    const nextSteps = currentSteps();
+    if (state.wizardStep >= nextSteps.length) state.wizardStep = nextSteps.length - 1;
     renderWizard();
     return;
   }
-  // Finish
+
   state.profile = { ...state.wizardDraft };
   saveProfile(state.profile);
   state.settings = {
@@ -356,7 +476,7 @@ function wizardNav(dir) {
   saveSettings(state.settings);
   setOnboardingDone(true);
   rebuildPlan(true);
-  showToast("برنامه ساخته شد");
+  showToast("برنامهٔ امروز ساخته شد");
   showView("today");
 }
 
@@ -403,10 +523,21 @@ function renderToday() {
   ring.style.strokeDashoffset = String(circ * (1 - progress / 100));
 
   const root = $("#timeline");
-  root.innerHTML = state.plan.blocks
-    .map((b) => {
-      const typeLabel = typeLabelFa(b.type);
-      return `
+  let html = "";
+  let lastPeriod = null;
+
+  for (const b of state.plan.blocks) {
+    if (b.periodId && b.periodId !== lastPeriod) {
+      lastPeriod = b.periodId;
+      const period = getPeriod(b.periodId);
+      html += `
+        <div class="period-header">
+          <div class="period-header-label">${period.label}</div>
+          <div class="period-header-hint">${period.hint} · ${toPersianDigits(period.startTime)}</div>
+        </div>`;
+    }
+    const typeLabel = typeLabelFa(b.type);
+    html += `
       <article class="timeline-item" data-id="${b.instanceId}">
         <div class="timeline-dot" data-type="${b.type}" title="${typeLabel}">${typeShort(b.type)}</div>
         <div class="timeline-body ${b.done ? "done" : ""}">
@@ -427,8 +558,9 @@ function renderToday() {
           </div>
         </div>
       </article>`;
-    })
-    .join("");
+  }
+
+  root.innerHTML = html;
 
   root.onclick = (e) => {
     const btn = e.target.closest("[data-action]");
@@ -477,7 +609,6 @@ function typeShort(type) {
 function enterFocus() {
   if (!state.plan) ensurePlan();
   if (!state.plan) return;
-  // Skip breaks when landing on one
   while (state.plan.blocks[state.focusIndex]?.type === "break" && state.focusIndex < state.plan.blocks.length - 1) {
     state.focusIndex += 1;
   }
@@ -504,10 +635,8 @@ function completeCurrentFocus() {
     toggleCompletion(state.plan.dateKey, block.instanceId);
     state.plan = applyCompletionState(state.plan, loadCompletion());
   }
-  // advance
   let next = state.focusIndex + 1;
   while (state.plan.blocks[next]?.type === "break" && next < state.plan.blocks.length) {
-    // auto-acknowledge break by skipping visually but could pause
     next += 1;
   }
   if (next >= state.plan.blocks.length) {
@@ -605,15 +734,27 @@ function renderSettings() {
   if (!p) {
     box.innerHTML = `<p class="empty-state">پروفایلی تنظیم نشده.</p>`;
   } else {
-    const track = TRACKS[`${p.grade}-${p.field}`];
-    const ratio = RATIOS.find((r) => r.id === p.ratioId);
+    const info = describeProfile(p);
+    const held = TRACKS[`${p.grade}-${p.field}`]?.subjects?.find((s) => s.id === p.nextHeldId);
     box.innerHTML = `
-      <div class="summary-row"><span class="k">مسیر</span><span class="v">${track?.label || "—"}</span></div>
-      <div class="summary-row"><span class="k">امتحانات</span><span class="v">${EXAM_STATUSES[p.examStatus]?.label || "—"}</span></div>
-      <div class="summary-row"><span class="k">سطح</span><span class="v">${LEVELS[p.level]?.label || "—"}</span></div>
-      <div class="summary-row"><span class="k">نسبت</span><span class="v">${ratio?.label || "—"}</span></div>
-      <div class="summary-row"><span class="k">ساعات مطالعه</span><span class="v">${toPersianDigits(p.studyHours)}</span></div>
-      <div class="summary-row"><span class="k">شروع</span><span class="v">${toPersianDigits(p.startTime)}</span></div>
+      <div class="summary-row"><span class="k">مسیر</span><span class="v">${info.trackLabel}</span></div>
+      <div class="summary-row"><span class="k">امتحان بعدی</span><span class="v">${info.nextExam}</span></div>
+      <div class="summary-row"><span class="k">وضعیت خبر</span><span class="v">${info.newsLabel}</span></div>
+      ${
+        p.examNews === "cancelled"
+          ? `<div class="summary-row"><span class="k">سطح در درس</span><span class="v">${info.strengthLabel}</span></div>`
+          : ""
+      }
+      ${
+        p.examNews === "cancelled" && p.subjectStrength === "weak"
+          ? `<div class="summary-row"><span class="k">برگزارشدنی</span><span class="v">${
+              p.nextHeldWeak ? held?.name || "ضعیف" : "ضعیف نیست → تست"
+            }</span></div>`
+          : ""
+      }
+      <div class="summary-row"><span class="k">پیشنهادهای فعال</span><span class="v">${toPersianDigits(
+        (p.selectedSuggestions || []).length || 3
+      )}</span></div>
     `;
   }
   $("#set-break-short").value = state.settings.breakShortMin ?? 10;

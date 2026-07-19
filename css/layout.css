@@ -25,19 +25,22 @@
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, var(--color-primary) 0%, var(--color-primary-soft) 100%);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0a0a0a;
   display: grid;
   place-items: center;
-  color: #fff;
   box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(164, 198, 57, 0.35);
 }
 
-.brand-mark svg {
-  width: 20px;
-  height: 20px;
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .brand-text {
@@ -62,7 +65,81 @@
   flex: 1;
   width: min(100%, var(--max-w));
   margin: 0 auto;
-  padding: var(--space-5) var(--space-4) calc(var(--nav-h) + var(--space-8));
+  padding: var(--space-5) var(--space-4) var(--space-4);
+}
+
+.app-credit {
+  width: min(100%, var(--max-w));
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-4) calc(var(--nav-h) + var(--space-4));
+  text-align: center;
+}
+
+.credit-line {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0;
+  line-height: 1;
+}
+
+.signature {
+  font-family: "Great Vibes", cursive;
+  font-size: clamp(1.85rem, 5vw, 2.35rem);
+  color: var(--color-ink);
+  letter-spacing: 0.02em;
+  transform: rotate(-2deg);
+  display: inline-block;
+  animation: signature-ink 1.1s var(--ease-out) both;
+}
+
+.credit-heart {
+  color: #e11d48;
+  font-size: 1.35rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 6px rgba(225, 29, 72, 0.35));
+  animation: heart-beat 1.6s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.credit-lab {
+  margin: 0.35rem 0 0;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6f8f1f;
+}
+
+@keyframes heart-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  14% {
+    transform: scale(1.18);
+  }
+  28% {
+    transform: scale(1);
+  }
+  42% {
+    transform: scale(1.12);
+  }
+  56% {
+    transform: scale(1);
+  }
+}
+
+@keyframes signature-ink {
+  from {
+    opacity: 0;
+    transform: rotate(-2deg) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-2deg) translateY(0);
+  }
 }
 
 .app-main.wide {

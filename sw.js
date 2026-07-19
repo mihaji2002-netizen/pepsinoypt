@@ -1,4 +1,4 @@
-const CACHE = "masir-v8-today-timer-edit";
+const CACHE = "masir-v9-pepsino-brand";
 const ASSETS = [
   "./",
   "./index.html",
@@ -25,6 +25,10 @@ const ASSETS = [
   "./assets/icons/icon.svg",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
+  "./assets/brand/pepsino-lab-logo.webp",
+  "./assets/brand/pepsino-lab-logo-512.png",
+  "./assets/brand/pepsino-mark-192.png",
+  "./assets/brand/pepsino-mark-96.png",
 ];
 
 self.addEventListener("install", (event) => {

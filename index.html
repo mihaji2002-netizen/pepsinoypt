@@ -10,11 +10,11 @@
     <meta name="apple-mobile-web-app-title" content="مسیر" />
     <title>مسیر | برنامه‌ریز نهایی و کنکور</title>
     <link rel="manifest" href="./manifest.json" />
-    <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+    <link rel="icon" href="./assets/brand/pepsino-mark-96.png" type="image/png" />
+    <link rel="apple-touch-icon" href="./assets/brand/pepsino-mark-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./css/tokens.css" />
     <link rel="stylesheet" href="./css/base.css" />
     <link rel="stylesheet" href="./css/layout.css" />
@@ -38,16 +38,13 @@
       </div>
 
       <header class="app-header">
-        <div class="brand" aria-label="برند مسیر">
-          <div class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 19c4-2 6-8 8-8s4 6 8 8" stroke-linecap="round" />
-              <circle cx="12" cy="7" r="2.2" fill="currentColor" stroke="none" />
-            </svg>
+        <div class="brand" aria-label="pepsino LAB · مسیر">
+          <div class="brand-mark">
+            <img src="./assets/brand/pepsino-mark-96.png" width="36" height="36" alt="" />
           </div>
           <div class="brand-text">
             <div class="brand-name">مسیر</div>
-            <div class="brand-tag">برنامه‌ریز نهایی و کنکور</div>
+            <div class="brand-tag">pepsino LAB</div>
           </div>
         </div>
         <button type="button" class="btn-icon" id="btn-header-settings" aria-label="تنظیمات" title="تنظیمات">
@@ -63,19 +60,29 @@
         <section id="view-landing" class="view" data-view="landing">
           <div class="landing">
             <div>
-              <div class="landing-brand anim-fade-up">مسیر 🛤️</div>
-              <h1 class="landing-headline anim-fade-up" style="animation-delay: 80ms">
+              <div class="landing-logo-wrap anim-fade-up">
+                <img
+                  class="landing-logo"
+                  src="./assets/brand/pepsino-lab-logo.webp"
+                  width="280"
+                  height="280"
+                  alt="pepsino LAB — GET ACTIVE TO GROW"
+                  decoding="async"
+                />
+              </div>
+              <div class="landing-brand anim-fade-up" style="animation-delay: 60ms">مسیر</div>
+              <h1 class="landing-headline anim-fade-up" style="animation-delay: 120ms">
                 امتحان جابه‌جا شد؟ برنامه‌ت رو همین‌جا بساز
               </h1>
-              <p class="landing-sub anim-fade-up" style="animation-delay: 140ms">
+              <p class="landing-sub anim-fade-up" style="animation-delay: 180ms">
                 ثبت‌نام نمی‌خواد. بگو پایه‌ات چیه، امتحان بعدیت چیه، کنسل شده یا خبر نیومده — برات پیشنهاد می‌دیم چی کار کنی.
               </p>
-              <div class="landing-cta anim-fade-up" style="animation-delay: 200ms">
+              <div class="landing-cta anim-fade-up" style="animation-delay: 240ms">
                 <button type="button" class="btn btn-primary" id="btn-start-wizard">بزن بریم 🚀</button>
                 <button type="button" class="btn btn-ghost hidden" id="btn-skip-landing">برنامه امروز 📅</button>
               </div>
             </div>
-            <div class="landing-visual anim-fade-in" style="animation-delay: 260ms" role="img" aria-label="نمای مسیر مطالعه روزانه">
+            <div class="landing-visual anim-fade-in" style="animation-delay: 300ms" role="img" aria-label="نمای مسیر مطالعه روزانه">
               <p class="landing-visual-caption">
                 ☀️ صبح · 🌤️ ظهر · 🧡 عصر · 🌙 شب — بدون ساعت‌بندی خشک.
               </p>
@@ -318,6 +325,14 @@
           </div>
         </section>
       </main>
+
+      <footer class="app-credit" aria-label="امضای سازنده">
+        <p class="credit-line">
+          <span class="signature" dir="ltr" lang="en">Mehdi Haji</span>
+          <span class="credit-heart" aria-label="قلب">❤</span>
+        </p>
+        <p class="credit-lab" dir="ltr" lang="en">pepsino LAB</p>
+      </footer>
 
       <nav class="app-nav" id="app-nav" aria-label="ناوبری اصلی">
         <button type="button" class="nav-item" data-nav="landing" aria-label="خانه">

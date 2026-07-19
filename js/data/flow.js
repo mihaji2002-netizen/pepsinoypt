@@ -115,35 +115,40 @@ function resolveSuggestionsGrade12(answers) {
   return list;
 }
 
-/** یازدهم — مسیرهای مربی (بدون روتین شب اجباری) */
+/** یازدهم — مسیر کامل مربی (تعویق/بی‌خبری × ضعیف/قوی) */
 function resolveSuggestionsGrade11(answers) {
   const subjectName = answers.nextExamName || "اون درس";
   const subjectId = answers.nextExamId;
   const news = answers.examNews || "cancelled";
   const strength = answers.subjectStrength || "weak";
-  const postponed = news === "cancelled";
   const list = [];
 
   if (news === "cancelled" && strength === "weak") {
+    // صبح
     list.push(morningStudy(subjectName, subjectId, true));
+    // ظهر
     list.push(
       afternoonReview(subjectName, subjectId),
       afternoonPreread12("bio", "زیست")
     );
+    // عصر
     list.push(
       eveningReview(subjectName, subjectId),
       eveningRest(answers),
       eveningNextUncertain(answers)
     );
   } else if (news === "cancelled" && strength === "ok") {
+    // صبح
     list.push(
       morningPreread12("bio", "زیست"),
       morningStudyExclusive(subjectName, subjectId, true)
     );
+    // ظهر
     list.push(
       afternoonTestMorningPreread(),
       afternoonStudyExam(subjectName, subjectId, true)
     );
+    // عصر
     list.push(
       eveningReview(subjectName, subjectId),
       eveningRest(answers),
@@ -152,21 +157,34 @@ function resolveSuggestionsGrade11(answers) {
       eveningNextUncertain(answers)
     );
   } else if (news === "noNews" && strength === "weak") {
+    // صبح
     list.push(morningStudy(subjectName, subjectId, false));
+    // ظهر
     list.push(
       afternoonReview(subjectName, subjectId),
+      afternoonBookletBioMath(),
+      afternoonBookletPhysChem(),
       afternoonPreread12("bio", "زیست"),
       afternoonPreread12("chem", "شیمی"),
       afternoonPreread12("phys", "فیزیک")
     );
-    list.push(eveningStudyExam(subjectName, subjectId));
+    // عصر
+    list.push(
+      eveningStudyExamExclusive(subjectName, subjectId),
+      eveningReview(subjectName, subjectId),
+      eveningRest(answers)
+    );
   } else {
     // noNews + ok
-    list.push(morningStudy(subjectName, subjectId, false));
+    // صبح
+    list.push(morningMockExclusive(), morningStudyExclusive(subjectName, subjectId, false));
+    // ظهر
     list.push(
-      afternoonPreread12("bio", "زیست"),
-      afternoonStudyExam(subjectName, subjectId, false)
+      afternoonContinueAnalysis(),
+      afternoonStudyExam(subjectName, subjectId, false),
+      afternoonPreread12("bio", "زیست")
     );
+    // عصر
     list.push(
       eveningReview(subjectName, subjectId),
       eveningRest(answers),
@@ -176,6 +194,8 @@ function resolveSuggestionsGrade11(answers) {
     );
   }
 
+  // روتین شب — برای همه مسیرهای یازدهم
+  list.push(nightRoutineSuggestion());
   return list;
 }
 
@@ -285,6 +305,10 @@ function morningMock() {
       },
     ],
   });
+}
+
+function morningMockExclusive() {
+  return { ...morningMock(), exclusiveGroup: "morning" };
 }
 
 function afternoonReview(subjectName, subjectId) {
@@ -412,6 +436,10 @@ function eveningStudyExam(subjectName, subjectId) {
     body: `مطالعه و مرور ${subjectName} — که اگه یهو برگزارش کردن غافلگیر نشی و یکم خونده باشی.`,
     blocks: continueReviewBlocks(subjectId, subjectName),
   });
+}
+
+function eveningStudyExamExclusive(subjectName, subjectId) {
+  return { ...eveningStudyExam(subjectName, subjectId), exclusiveGroup: "evening" };
 }
 
 function eveningStudyContinue(subjectName, subjectId) {

@@ -107,10 +107,8 @@ export function assertPlanInvariants(plan, profile) {
   const titles = plan.blocks.map((b) => b.id);
   if (!plan.blocks.some((b) => b.isPeriodStart)) errors.push("missing period starts");
 
-  if (Number(profile.grade) === 12) {
-    if (!titles.includes("chem-hafziat")) errors.push("missing night chem-hafziat");
-    if (!titles.includes("bio-giyahi-summary")) errors.push("missing night giyahi");
-  }
+  if (!titles.includes("chem-hafziat")) errors.push("missing night chem-hafziat");
+  if (!titles.includes("bio-giyahi-summary")) errors.push("missing night giyahi");
 
   const all = previewSuggestions(profile);
   const afternoonAlts = all.filter((s) => s.period === "afternoon");
@@ -135,7 +133,7 @@ export function assertPlanInvariants(plan, profile) {
       if (eveningAlts.length < 2) errors.push("g12 ok-nonews evening should have 2 alts");
     }
   } else {
-    // grade 11
+    // grade 11 — full coaching matrix
     if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
       if (afternoonAlts.length < 2) errors.push("g11 weak-postponed afternoon should have 2 alts");
       if (eveningAlts.length < 3) errors.push("g11 weak-postponed evening should have 3 alts");
@@ -146,11 +144,12 @@ export function assertPlanInvariants(plan, profile) {
       if (eveningAlts.length < 5) errors.push("g11 ok-postponed evening should have 5 alts");
     }
     if (profile.examNews === "noNews" && profile.subjectStrength === "weak") {
-      if (afternoonAlts.length < 4) errors.push("g11 weak-nonews afternoon should have 4 alts");
-      if (eveningAlts.length < 1) errors.push("g11 weak-nonews evening should have 1 option");
+      if (afternoonAlts.length < 6) errors.push("g11 weak-nonews afternoon should have 6 alts");
+      if (eveningAlts.length < 3) errors.push("g11 weak-nonews evening should have 3 alts");
     }
     if (profile.examNews === "noNews" && profile.subjectStrength === "ok") {
-      if (afternoonAlts.length < 2) errors.push("g11 ok-nonews afternoon should have 2 alts");
+      if (morningExclusive.length < 2) errors.push("g11 ok-nonews morning should have 2 alts");
+      if (afternoonAlts.length < 3) errors.push("g11 ok-nonews afternoon should have 3 alts");
       if (eveningAlts.length < 5) errors.push("g11 ok-nonews evening should have 5 alts");
     }
   }
@@ -222,6 +221,7 @@ export const SHOWCASE = [
       "morning-study-postponed",
       "afternoon-preread12-bio",
       "evening-next-uncertain",
+      "night-chem-giyahi",
     ],
   }),
   defaultProfile({
@@ -229,9 +229,10 @@ export const SHOWCASE = [
     examNews: "noNews",
     subjectStrength: "ok",
     selectedSuggestions: [
-      "morning-study-exam",
+      "morning-mock-analysis",
       "afternoon-preread12-bio",
       "evening-preread12-phys",
+      "night-chem-giyahi",
     ],
   }),
   defaultProfile({

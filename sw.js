@@ -1,4 +1,4 @@
-const CACHE = "masir-v11-restore-app";
+const CACHE = "chaos-v12-home";
 const ASSETS = [
   "./",
   "./index.html",

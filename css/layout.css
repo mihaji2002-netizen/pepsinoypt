@@ -50,10 +50,13 @@
 }
 
 .brand-name {
+  font-family: var(--font-brand);
   font-size: var(--fs-lg);
   font-weight: 800;
   color: var(--color-primary);
   letter-spacing: -0.03em;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .brand-tag {

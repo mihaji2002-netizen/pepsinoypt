@@ -115,6 +115,24 @@
   color: #6f8f1f;
 }
 
+.credit-links {
+  margin: 0.55rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem 0.55rem;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.credit-links a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 @keyframes heart-beat {
   0%,
   100% {

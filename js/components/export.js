@@ -74,7 +74,12 @@ export async function exportPlanImage(plan, meta = {}) {
   // Footer
   ctx.fillStyle = "#6b7f8c";
   ctx.font = "500 12px Vazirmatn, Tahoma, sans-serif";
-  ctx.fillText("ساخته‌شده با مسیر", width - pad, height - pad);
+  ctx.fillText("مسیر · pepsino LAB", width - pad, height - pad - 22);
+  ctx.fillStyle = "#e11d48";
+  ctx.font = "500 14px Great Vibes, cursive, serif";
+  ctx.textAlign = "left";
+  ctx.direction = "ltr";
+  ctx.fillText("Mehdi Haji ❤", pad, height - pad);
 
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   const url = URL.createObjectURL(blob);

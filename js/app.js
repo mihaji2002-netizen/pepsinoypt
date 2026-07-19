@@ -443,8 +443,8 @@ function renderSuggestionsStep(panel, d, track) {
     html += `
       <div class="suggestion-period-block" id="uncertain-picker">
         <div class="suggestion-period-heading">
-          <strong>کدوم امتحان هنوز خبر رسمیش نیومده؟</strong>
-          <span>همونی که توش ضعف داری</span>
+          <strong>امتحان بعدی‌ت کدومه؟</strong>
+          <span>همونی که بعد از این لغو‌شده میاد و برات سخته یا فرجه‌ش کمه</span>
         </div>
         <div class="choice-grid" id="choice-uncertain">
           ${track.subjects
@@ -1001,7 +1001,7 @@ function setupPwa() {
   if ("serviceWorker" in navigator) {
     // Reload at most once per version when a new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      const key = "chaos-sw-reload-v19";
+      const key = "chaos-sw-reload-v20";
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
       window.location.reload();

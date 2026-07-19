@@ -93,7 +93,7 @@ function normalizeAnswers(profile, track) {
   const held = track.subjects.find((s) => s.id === profile.nextHeldId) || null;
   return {
     grade: profile.grade,
-    field: profile.field || (profile.grade === 12 ? "all" : "exp"),
+    field: profile.field || "all",
     nextExamId: next?.id || profile.nextExamId,
     nextExamName: next?.name || profile.nextExamName || "درس",
     examNews: profile.examNews || "cancelled",

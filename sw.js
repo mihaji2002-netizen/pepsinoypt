@@ -1,4 +1,4 @@
-const CACHE = "chaos-v16-connect-tiles";
+const CACHE = "chaos-v17-grade11-paths";
 const ASSETS = [
   "./",
   "./index.html",

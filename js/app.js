@@ -54,18 +54,14 @@ const timer = new FocusTimer({
   },
 });
 
-function wizardStepsFor(draft) {
-  const steps = [{ id: "grade", title: "پایه" }];
-  if (draft?.grade === 11) {
-    steps.push({ id: "field", title: "رشته" });
-  }
-  steps.push(
+function wizardStepsFor(_draft) {
+  return [
+    { id: "grade", title: "پایه" },
     { id: "nextExam", title: "امتحان بعدی" },
     { id: "examNews", title: "وضعیت خبر" },
     { id: "strength", title: "سطح در این درس" },
-    { id: "suggestions", title: "پیشنهادهای روز" }
-  );
-  return steps;
+    { id: "suggestions", title: "پیشنهادهای روز" },
+  ];
 }
 
 function init() {
@@ -263,7 +259,7 @@ function startWizard(existing = null) {
         breakShortMin: state.settings.breakShortMin ?? 10,
         breakLongMin: state.settings.breakLongMin ?? 40,
       };
-  if (base.grade === 12) base.field = "all";
+  base.field = "all";
   const track = getTrackForProfile(base);
   const first = track.subjects[0];
   const second = track.subjects[1] || first;
@@ -320,26 +316,7 @@ function renderWizard() {
       const btn = e.target.closest(".choice");
       if (!btn) return;
       d.grade = Number(btn.dataset.grade);
-      d.field = d.grade === 12 ? "all" : d.field === "all" ? "exp" : d.field || "exp";
-      syncSubjectsAfterTrackChange(d);
-      renderWizard();
-    };
-  } else if (step.id === "field") {
-    panel.innerHTML = `
-      <h2 class="panel-title">رشته‌ات چیه؟</h2>
-      <p class="panel-desc">که بدونم از چه درسایی برات بیارم.</p>
-      <div class="choice-grid cols-2" id="choice-field">
-        <button type="button" class="choice ${d.field === "exp" ? "selected" : ""}" data-field="exp">
-          <span class="choice-title">تجربی</span>
-        </button>
-        <button type="button" class="choice ${d.field === "math" ? "selected" : ""}" data-field="math">
-          <span class="choice-title">ریاضی</span>
-        </button>
-      </div>`;
-    panel.querySelector("#choice-field").onclick = (e) => {
-      const btn = e.target.closest(".choice");
-      if (!btn) return;
-      d.field = btn.dataset.field;
+      d.field = "all";
       syncSubjectsAfterTrackChange(d);
       renderWizard();
     };
@@ -521,7 +498,7 @@ function renderSuggestionsStep(panel, d, track) {
 }
 
 function syncSubjectsAfterTrackChange(d) {
-  if (d.grade === 12) d.field = "all";
+  d.field = "all";
   const track = getTrackForProfile(d);
   if (!track) return;
   if (!track.subjects.some((s) => s.id === d.nextExamId)) {
@@ -1024,7 +1001,7 @@ function setupPwa() {
   if ("serviceWorker" in navigator) {
     // Reload at most once per version when a new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      const key = "chaos-sw-reload-v16";
+      const key = "chaos-sw-reload-v17";
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
       window.location.reload();

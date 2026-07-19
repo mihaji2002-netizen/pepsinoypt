@@ -523,21 +523,24 @@ function eveningRest(answers = {}) {
 function eveningNextUncertain(answers) {
   const subjectId = answers.nextHeldId || null;
   const subjectName = answers.nextHeldName || "امتحان بعدی";
+  // متن دقیق مربی — بدون «کار کردن روی…»، بدون «ضعف داری»، بدون نام درس (مثل فیزیک)
+  const coachLine =
+    "اگه امتحان بعد از این امتحانی که لغو شده برات سخته یا فرجه‌ش کمه، الان می‌تونی براش زمان بذاری.";
   return suggestion({
     id: "evening-next-uncertain",
     period: "evening",
     exclusiveGroup: "evening",
     needsUncertainSubject: true,
-    title: "عصر: زمان برای امتحان بعدی",
-    body: "اگه امتحان بعد از این امتحانی که لغو شده برات سخته یا فرجه‌ش کمه، الان می‌تونی براش زمان بذاری.",
+    title: `عصر: ${coachLine}`,
+    body: coachLine,
     blocks: [
       {
         blockId: "desc-core",
         durationMin: 60,
         subjectId,
         subjectName,
-        title: "زمان برای امتحان بعدی",
-        desc: "اگه برات سخته یا فرجه‌ش کمه، الان براش وقت بذار.",
+        title: coachLine,
+        desc: "",
       },
       { blockId: "break-short", durationMin: 10 },
       {
@@ -545,7 +548,8 @@ function eveningNextUncertain(answers) {
         durationMin: 50,
         subjectId,
         subjectName,
-        title: "تمرین امتحان بعدی",
+        title: "تمرین برای همون امتحان بعدی",
+        desc: "",
       },
     ],
   });
@@ -712,7 +716,10 @@ export const AFTERNOON_CHOICES = {
 export const EVENING_CHOICES = {
   "evening-review": { label: (n) => `ادامه مرور ${n}` },
   "evening-rest": { label: () => "استراحت" },
-  "evening-next-uncertain": { label: () => "زمان برای امتحان بعدی" },
+  "evening-next-uncertain": {
+    label: () =>
+      "اگه امتحان بعد از این امتحانی که لغو شده برات سخته یا فرجه‌ش کمه، الان می‌تونی براش زمان بذاری",
+  },
   "evening-booklet-bio-math": { label: () => "تک‌دفترچه زیست و ریاضی" },
   "evening-booklet-phys-chem": { label: () => "تک‌دفترچه فیزیک و شیمی" },
   "evening-preread12-chem": { label: () => "پیش‌خوانی شیمی دوازدهم" },

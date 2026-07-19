@@ -115,7 +115,7 @@ function resolveSuggestionsGrade12(answers) {
   return list;
 }
 
-/** یازدهم — مسیر کامل مربی (تعویق/بی‌خبری × ضعیف/قوی) */
+/** یازدهم — دقیقاً مطابق بلوک‌های مربی */
 function resolveSuggestionsGrade11(answers) {
   const subjectName = answers.nextExamName || "اون درس";
   const subjectId = answers.nextExamId;
@@ -124,67 +124,51 @@ function resolveSuggestionsGrade11(answers) {
   const list = [];
 
   if (news === "cancelled" && strength === "weak") {
-    // صبح
     list.push(morningStudy(subjectName, subjectId, true));
-    // ظهر
     list.push(
       afternoonReview(subjectName, subjectId),
-      afternoonPreread12("bio", "زیست")
+      afternoonPreread12("bio", "زیست"),
+      afternoonPreread12PhysMath()
     );
-    // عصر
     list.push(
       eveningReview(subjectName, subjectId),
       eveningRest(answers),
       eveningNextUncertain(answers)
     );
   } else if (news === "cancelled" && strength === "ok") {
-    // صبح
     list.push(
       morningPreread12("bio", "زیست"),
+      morningPreread12PhysMath(),
       morningStudyExclusive(subjectName, subjectId, true)
     );
-    // ظهر
     list.push(
       afternoonTestMorningPreread(),
       afternoonStudyExam(subjectName, subjectId, true)
     );
-    // عصر
     list.push(
       eveningReview(subjectName, subjectId),
       eveningRest(answers),
       eveningPreread12("chem", "شیمی"),
-      eveningPreread12("phys", "فیزیک"),
-      eveningNextUncertain(answers)
+      eveningPreread12("phys", "فیزیک")
     );
   } else if (news === "noNews" && strength === "weak") {
-    // صبح
     list.push(morningStudy(subjectName, subjectId, false));
-    // ظهر
     list.push(
       afternoonReview(subjectName, subjectId),
-      afternoonBookletBioMath(),
-      afternoonBookletPhysChem(),
       afternoonPreread12("bio", "زیست"),
+      afternoonPreread12PhysMath(),
       afternoonPreread12("chem", "شیمی"),
       afternoonPreread12("phys", "فیزیک")
     );
-    // عصر
-    list.push(
-      eveningStudyExamExclusive(subjectName, subjectId),
-      eveningReview(subjectName, subjectId),
-      eveningRest(answers)
-    );
+    list.push(eveningStudyExam(subjectName, subjectId));
   } else {
     // noNews + ok
-    // صبح
-    list.push(morningMockExclusive(), morningStudyExclusive(subjectName, subjectId, false));
-    // ظهر
+    list.push(morningStudy(subjectName, subjectId, false));
     list.push(
-      afternoonContinueAnalysis(),
-      afternoonStudyExam(subjectName, subjectId, false),
-      afternoonPreread12("bio", "زیست")
+      afternoonPreread12("bio", "زیست"),
+      afternoonPreread12PhysMath(),
+      afternoonStudyExam(subjectName, subjectId, false)
     );
-    // عصر
     list.push(
       eveningReview(subjectName, subjectId),
       eveningRest(answers),
@@ -194,8 +178,6 @@ function resolveSuggestionsGrade11(answers) {
     );
   }
 
-  // روتین شب — برای همه مسیرهای یازدهم
-  list.push(nightRoutineSuggestion());
   return list;
 }
 
@@ -275,6 +257,17 @@ function morningPreread12(subjectId, subjectLabel) {
     title: `صبح: پیش‌خوانی ${subjectLabel} دوازدهم`,
     body: `پیش‌خوانی ${subjectLabel} دوازدهم ${VIDEO_ARCHIVE_NOTE}`,
     blocks: prereadBlocks(subjectId, subjectLabel),
+  });
+}
+
+function morningPreread12PhysMath() {
+  return suggestion({
+    id: "morning-preread12-phys-math",
+    period: "morning",
+    exclusiveGroup: "morning",
+    title: "صبح: پیش‌خوانی فیزیک دوازدهم (مخصوص ریاضی)",
+    body: `پیش‌خوانی فیزیک دوازدهم مخصوص رشته ریاضی ${VIDEO_ARCHIVE_NOTE}`,
+    blocks: prereadBlocks("phys", "فیزیک (ریاضی)"),
   });
 }
 
@@ -391,6 +384,17 @@ function afternoonPreread12(subjectId, subjectLabel) {
   });
 }
 
+function afternoonPreread12PhysMath() {
+  return suggestion({
+    id: "afternoon-preread12-phys-math",
+    period: "afternoon",
+    exclusiveGroup: "afternoon",
+    title: "ظهر: پیش‌خوانی فیزیک دوازدهم (مخصوص ریاضی)",
+    body: `پیش‌خوانی فیزیک دوازدهم مخصوص رشته ریاضی ${VIDEO_ARCHIVE_NOTE}`,
+    blocks: prereadBlocks("phys", "فیزیک (ریاضی)"),
+  });
+}
+
 function afternoonTestMorningPreread() {
   return suggestion({
     id: "afternoon-test-morning-preread",
@@ -402,10 +406,8 @@ function afternoonTestMorningPreread() {
       {
         blockId: "problem-set",
         durationMin: 70,
-        subjectId: "bio",
-        subjectName: "زیست دوازدهم",
         title: "تست از پیش‌خوانی صبح",
-        desc: "اولویت با تست‌های همون مبحث.",
+        desc: "اولویت با تست‌های همون مبحث پیش‌خوانی‌شده.",
       },
       { blockId: "break-short", durationMin: 10 },
       {
@@ -685,6 +687,7 @@ export const AFTERNOON_CHOICES = {
   "afternoon-preread12-bio": { label: () => "پیش‌خوانی زیست دوازدهم" },
   "afternoon-preread12-chem": { label: () => "پیش‌خوانی شیمی دوازدهم" },
   "afternoon-preread12-phys": { label: () => "پیش‌خوانی فیزیک دوازدهم" },
+  "afternoon-preread12-phys-math": { label: () => "پیش‌خوانی فیزیک دوازدهم (ریاضی)" },
   "afternoon-test-morning-preread": { label: () => "تست از پیش‌خوانی صبح" },
 };
 

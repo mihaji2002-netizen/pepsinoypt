@@ -1,17 +1,16 @@
 import { buildDailyPlan } from "./planner.js";
 import { computePolicy } from "./rules.js";
 import { getTrackForProfile } from "../data/subjects.js";
+import { getAfternoonChoices, getEveningChoices } from "../data/flow.js";
 
 /**
- * Scenario matrix for fluid coaching paths.
+ * Scenario matrix for all grade-12 coaching paths (+ grade 11).
  */
 
 export const GRADES = [11, 12];
 export const FIELDS_11 = ["exp", "math"];
 export const EXAM_NEWS_LIST = ["cancelled", "noNews"];
 export const STRENGTHS = ["weak", "ok"];
-export const AFTERNOON = ["review", "booklet-bio-math", "booklet-phys-chem"];
-export const EVENING = ["review", "rest", "next-uncertain"];
 
 export function defaultProfile(overrides = {}) {
   const grade = overrides.grade ?? 12;
@@ -19,21 +18,29 @@ export function defaultProfile(overrides = {}) {
   const track = getTrackForProfile({ grade, field });
   const first = track.subjects[0];
   const second = track.subjects[1] || first;
-  return {
+  const base = {
     grade,
     field,
     nextExamId: first.id,
+    nextExamName: first.name,
     examNews: "cancelled",
     subjectStrength: "weak",
     afternoonChoice: "review",
     eveningChoice: "review",
     nextHeldId: second.id,
+    nextHeldName: second.name,
     selectedSuggestions: null,
     breakShortMin: 10,
     breakLongMin: 40,
     ...overrides,
     field: grade === 12 ? "all" : overrides.field ?? field,
   };
+  // clamp choices to valid options for path
+  const afternoonOpts = getAfternoonChoices(base).map((c) => c.id);
+  const eveningOpts = getEveningChoices(base).map((c) => c.id);
+  if (!afternoonOpts.includes(base.afternoonChoice)) base.afternoonChoice = afternoonOpts[0];
+  if (!eveningOpts.includes(base.eveningChoice)) base.eveningChoice = eveningOpts[0];
+  return base;
 }
 
 export function allScenarioProfiles() {
@@ -42,27 +49,22 @@ export function allScenarioProfiles() {
     const fields = grade === 12 ? ["all"] : FIELDS_11;
     for (const field of fields) {
       for (const examNews of EXAM_NEWS_LIST) {
-        if (examNews === "noNews") {
-          profiles.push(defaultProfile({ grade, field, examNews }));
-          continue;
-        }
         for (const subjectStrength of STRENGTHS) {
-          if (subjectStrength === "ok") {
-            profiles.push(defaultProfile({ grade, field, examNews, subjectStrength }));
-          } else {
-            for (const afternoonChoice of AFTERNOON) {
-              for (const eveningChoice of EVENING) {
-                profiles.push(
-                  defaultProfile({
-                    grade,
-                    field,
-                    examNews,
-                    subjectStrength,
-                    afternoonChoice,
-                    eveningChoice,
-                  })
-                );
-              }
+          const probe = defaultProfile({ grade, field, examNews, subjectStrength });
+          const afternoons = getAfternoonChoices(probe).map((c) => c.id);
+          const evenings = getEveningChoices(probe).map((c) => c.id);
+          for (const afternoonChoice of afternoons) {
+            for (const eveningChoice of evenings) {
+              profiles.push(
+                defaultProfile({
+                  grade,
+                  field,
+                  examNews,
+                  subjectStrength,
+                  afternoonChoice,
+                  eveningChoice,
+                })
+              );
             }
           }
         }
@@ -91,30 +93,29 @@ export function assertPlanInvariants(plan, profile) {
   }
 
   const titles = plan.blocks.map((b) => b.id);
-  const periodStarts = plan.blocks.filter((b) => b.isPeriodStart);
-  if (!periodStarts.length) errors.push("missing period starts");
-
+  if (!plan.blocks.some((b) => b.isPeriodStart)) errors.push("missing period starts");
   if (!titles.includes("chem-hafziat")) errors.push("missing night chem-hafziat");
   if (!titles.includes("bio-giyahi-summary")) errors.push("missing night giyahi");
 
-  if (profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
-    if (!titles.includes("maz-full")) errors.push("ok-path missing mock exam");
+  if (profile.subjectStrength === "ok") {
+    if (!titles.includes("maz-full")) errors.push("strong-path missing morning mock");
   }
 
-  if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
-    const hasPostponedReview = plan.blocks.some(
+  if (profile.subjectStrength === "weak") {
+    const hasSubject = plan.blocks.some(
       (b) => b.subjectId === profile.nextExamId && b.type !== "break"
     );
-    if (profile.afternoonChoice === "review" || profile.eveningChoice === "review" || true) {
-      // morning always reviews postponed subject
-      if (!hasPostponedReview) errors.push("weak-path missing postponed subject work");
-    }
-    if (profile.afternoonChoice === "booklet-bio-math" && !titles.includes("booklet-bio-math")) {
-      errors.push("missing booklet-bio-math");
-    }
-    if (profile.afternoonChoice === "booklet-phys-chem" && !titles.includes("booklet-phys-chem")) {
-      errors.push("missing booklet-phys-chem");
-    }
+    if (!hasSubject) errors.push("weak-path missing subject study");
+  }
+
+  if (profile.afternoonChoice === "booklet-bio-math" && !titles.includes("booklet-bio-math")) {
+    errors.push("missing afternoon booklet-bio-math");
+  }
+  if (profile.afternoonChoice === "booklet-phys-chem" && !titles.includes("booklet-phys-chem")) {
+    errors.push("missing afternoon booklet-phys-chem");
+  }
+  if (profile.afternoonChoice === "continue-analysis" && !titles.includes("exam-analysis")) {
+    errors.push("missing continue-analysis");
   }
 
   return errors;
@@ -148,19 +149,11 @@ export function runAllScenarioTests() {
     }
   });
 
-  return {
-    total: profiles.length,
-    passed,
-    failed,
-    results,
-  };
+  return { total: profiles.length, passed, failed, results };
 }
 
 export function scenarioKey(p) {
-  if (p.examNews !== "cancelled" || p.subjectStrength !== "weak") {
-    return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength || "na"}`;
-  }
-  return `g${p.grade}-${p.field}-${p.examNews}-weak-${p.afternoonChoice}-${p.eveningChoice}`;
+  return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength}-${p.afternoonChoice}-${p.eveningChoice}`;
 }
 
 export const SHOWCASE = [
@@ -174,18 +167,22 @@ export const SHOWCASE = [
   defaultProfile({
     grade: 12,
     examNews: "cancelled",
+    subjectStrength: "ok",
+    afternoonChoice: "continue-analysis",
+    eveningChoice: "booklet-phys-chem",
+  }),
+  defaultProfile({
+    grade: 12,
+    examNews: "noNews",
     subjectStrength: "weak",
     afternoonChoice: "review",
     eveningChoice: "rest",
   }),
   defaultProfile({
     grade: 12,
-    examNews: "cancelled",
-    subjectStrength: "ok",
-  }),
-  defaultProfile({
-    grade: 11,
-    field: "exp",
     examNews: "noNews",
+    subjectStrength: "ok",
+    afternoonChoice: "study-exam",
+    eveningChoice: "review",
   }),
 ];

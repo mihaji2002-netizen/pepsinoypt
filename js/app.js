@@ -410,7 +410,7 @@ function renderSuggestionsStep(panel, d, track) {
 
   let html = `
     <h2 class="panel-title">اینا پیشنهادات ساخت برنامه‌ته</h2>
-    <p class="panel-desc">برای ظهر و عصر چند تا گزینه با «یا» هست — از هر بازه یکی رو انتخاب کن. صبح و روتین شب ثابت‌ان.</p>`;
+    <p class="panel-desc">هر جا چند پیشنهاد با «یا» دیدی، از اون بازه فقط یکی رو انتخاب کن. بقیه بازه‌ها هم تو برنامه‌ت میان.</p>`;
 
   for (const period of PERIODS) {
     const items = suggestions.filter((s) => s.period === period.id);
@@ -1001,7 +1001,7 @@ function setupPwa() {
   if ("serviceWorker" in navigator) {
     // Reload at most once per version when a new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      const key = "chaos-sw-reload-v17";
+      const key = "chaos-sw-reload-v18";
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
       window.location.reload();

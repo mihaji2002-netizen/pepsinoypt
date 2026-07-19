@@ -935,9 +935,6 @@ function renderTimer(snap) {
   if (state.plan && $("#stat-progress")) {
     $("#stat-progress").textContent = `${toPersianDigits(calcProgress(state.plan))}٪`;
   }
-  const toggleLabel = snap.running ? "توقف" : snap.remainingSec < snap.totalSec ? "ادامه" : "شروع";
-  if ($("#timer-toggle")) $("#timer-toggle").textContent = toggleLabel;
-  if ($("#today-timer-toggle")) $("#today-timer-toggle").textContent = toggleLabel;
 
   const active = document.activeElement;
   const editing = active && (active.classList?.contains("js-timer-min") || active.classList?.contains("js-timer-sec"));
@@ -1025,22 +1022,16 @@ function saveSettingsFromUi() {
 /* ——— PWA ——— */
 function setupPwa() {
   if ("serviceWorker" in navigator) {
-    // When a new SW takes over, reload once so logo/signature updates aren't stuck in old cache
-    let refreshing = false;
+    // Reload at most once per version when a new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (refreshing) return;
-      refreshing = true;
+      const key = "masir-sw-reload-v11";
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
       window.location.reload();
     });
-    navigator.serviceWorker
-      .register("./sw.js?v=10")
-      .then((reg) => {
-        reg.update?.();
-        setInterval(() => reg.update?.(), 60_000);
-      })
-      .catch(() => {
-        /* optional in file:// */
-      });
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+      /* optional in file:// */
+    });
   }
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();

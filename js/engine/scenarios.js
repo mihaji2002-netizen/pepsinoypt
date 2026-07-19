@@ -1,10 +1,10 @@
-import { buildDailyPlan } from "./planner.js";
+import { buildDailyPlan, previewSuggestions } from "./planner.js";
 import { computePolicy } from "./rules.js";
 import { getTrackForProfile } from "../data/subjects.js";
-import { getAfternoonChoices, getEveningChoices } from "../data/flow.js";
+import { defaultSelectedIds, pickSelectedSuggestions } from "../data/flow.js";
 
 /**
- * Scenario matrix for all grade-12 coaching paths (+ grade 11).
+ * Scenario matrix — all path combinations with multi-alternative suggestions.
  */
 
 export const GRADES = [11, 12];
@@ -20,13 +20,11 @@ export function defaultProfile(overrides = {}) {
   const second = track.subjects[1] || first;
   const base = {
     grade,
-    field,
+    field: grade === 12 ? "all" : field,
     nextExamId: first.id,
     nextExamName: first.name,
     examNews: "cancelled",
     subjectStrength: "weak",
-    afternoonChoice: "review",
-    eveningChoice: "review",
     nextHeldId: second.id,
     nextHeldName: second.name,
     selectedSuggestions: null,
@@ -35,11 +33,10 @@ export function defaultProfile(overrides = {}) {
     ...overrides,
     field: grade === 12 ? "all" : overrides.field ?? field,
   };
-  // clamp choices to valid options for path
-  const afternoonOpts = getAfternoonChoices(base).map((c) => c.id);
-  const eveningOpts = getEveningChoices(base).map((c) => c.id);
-  if (!afternoonOpts.includes(base.afternoonChoice)) base.afternoonChoice = afternoonOpts[0];
-  if (!eveningOpts.includes(base.eveningChoice)) base.eveningChoice = eveningOpts[0];
+  const all = previewSuggestions(base);
+  if (!base.selectedSuggestions) {
+    base.selectedSuggestions = defaultSelectedIds(all);
+  }
   return base;
 }
 
@@ -50,19 +47,21 @@ export function allScenarioProfiles() {
     for (const field of fields) {
       for (const examNews of EXAM_NEWS_LIST) {
         for (const subjectStrength of STRENGTHS) {
-          const probe = defaultProfile({ grade, field, examNews, subjectStrength });
-          const afternoons = getAfternoonChoices(probe).map((c) => c.id);
-          const evenings = getEveningChoices(probe).map((c) => c.id);
-          for (const afternoonChoice of afternoons) {
-            for (const eveningChoice of evenings) {
+          const base = defaultProfile({ grade, field, examNews, subjectStrength });
+          const all = previewSuggestions(base);
+          const afternoonAlts = all.filter((s) => s.period === "afternoon");
+          const eveningAlts = all.filter((s) => s.period === "evening");
+          // one profile per afternoon×evening combination
+          for (const af of afternoonAlts) {
+            for (const ev of eveningAlts) {
+              const fixed = all.filter((s) => !s.exclusiveGroup).map((s) => s.id);
               profiles.push(
                 defaultProfile({
                   grade,
                   field,
                   examNews,
                   subjectStrength,
-                  afternoonChoice,
-                  eveningChoice,
+                  selectedSuggestions: [...fixed, af.id, ev.id],
                 })
               );
             }
@@ -97,25 +96,40 @@ export function assertPlanInvariants(plan, profile) {
   if (!titles.includes("chem-hafziat")) errors.push("missing night chem-hafziat");
   if (!titles.includes("bio-giyahi-summary")) errors.push("missing night giyahi");
 
-  if (profile.subjectStrength === "ok") {
-    if (!titles.includes("maz-full")) errors.push("strong-path missing morning mock");
+  const all = previewSuggestions(profile);
+  const afternoonAlts = all.filter((s) => s.period === "afternoon");
+  const eveningAlts = all.filter((s) => s.period === "evening");
+
+  // multi-suggestion paths must expose more than one OR option
+  if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
+    if (afternoonAlts.length < 3) errors.push("weak-postponed afternoon should have 3 alts");
+    if (eveningAlts.length < 3) errors.push("weak-postponed evening should have 3 alts");
+  }
+  if (profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
+    if (afternoonAlts.length < 4) errors.push("ok-postponed afternoon should have 4 alts");
+    if (eveningAlts.length < 4) errors.push("ok-postponed evening should have 4 alts");
+  }
+  if (profile.examNews === "noNews" && profile.subjectStrength === "weak") {
+    if (afternoonAlts.length < 3) errors.push("weak-nonews afternoon should have 3 alts");
+    if (eveningAlts.length < 2) errors.push("weak-nonews evening should have 2 alts");
+  }
+  if (profile.examNews === "noNews" && profile.subjectStrength === "ok") {
+    if (afternoonAlts.length < 2) errors.push("ok-nonews afternoon should have 2 alts");
+    if (eveningAlts.length < 2) errors.push("ok-nonews evening should have 2 alts");
   }
 
-  if (profile.subjectStrength === "weak") {
-    const hasSubject = plan.blocks.some(
-      (b) => b.subjectId === profile.nextExamId && b.type !== "break"
-    );
-    if (!hasSubject) errors.push("weak-path missing subject study");
-  }
+  // plan should only include ONE afternoon and ONE evening suggestion
+  const picked = pickSelectedSuggestions(all, profile.selectedSuggestions);
+  const afPicked = picked.filter((s) => s.period === "afternoon");
+  const evPicked = picked.filter((s) => s.period === "evening");
+  if (afPicked.length !== 1) errors.push(`expected 1 afternoon pick, got ${afPicked.length}`);
+  if (evPicked.length !== 1) errors.push(`expected 1 evening pick, got ${evPicked.length}`);
 
-  if (profile.afternoonChoice === "booklet-bio-math" && !titles.includes("booklet-bio-math")) {
-    errors.push("missing afternoon booklet-bio-math");
-  }
-  if (profile.afternoonChoice === "booklet-phys-chem" && !titles.includes("booklet-phys-chem")) {
-    errors.push("missing afternoon booklet-phys-chem");
-  }
-  if (profile.afternoonChoice === "continue-analysis" && !titles.includes("exam-analysis")) {
-    errors.push("missing continue-analysis");
+  if (profile.subjectStrength === "ok" && !titles.includes("maz-full")) {
+    // only if morning mock was selected (default)
+    if (picked.some((s) => s.id === "morning-mock-analysis") && !titles.includes("maz-full")) {
+      errors.push("strong-path missing morning mock");
+    }
   }
 
   return errors;
@@ -153,7 +167,10 @@ export function runAllScenarioTests() {
 }
 
 export function scenarioKey(p) {
-  return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength}-${p.afternoonChoice}-${p.eveningChoice}`;
+  const picked = (p.selectedSuggestions || []).filter(
+    (id) => id.startsWith("afternoon") || id.startsWith("evening")
+  );
+  return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength}-${picked.join("+") || "default"}`;
 }
 
 export const SHOWCASE = [
@@ -161,28 +178,38 @@ export const SHOWCASE = [
     grade: 12,
     examNews: "cancelled",
     subjectStrength: "weak",
-    afternoonChoice: "booklet-bio-math",
-    eveningChoice: "next-uncertain",
+    selectedSuggestions: [
+      "morning-study-postponed",
+      "afternoon-booklet-bio-math",
+      "evening-next-uncertain",
+      "night-chem-giyahi",
+    ],
   }),
   defaultProfile({
     grade: 12,
     examNews: "cancelled",
     subjectStrength: "ok",
-    afternoonChoice: "continue-analysis",
-    eveningChoice: "booklet-phys-chem",
+    selectedSuggestions: [
+      "morning-mock-analysis",
+      "afternoon-continue-analysis",
+      "evening-booklet-phys-chem",
+      "night-chem-giyahi",
+    ],
   }),
   defaultProfile({
     grade: 12,
     examNews: "noNews",
     subjectStrength: "weak",
-    afternoonChoice: "review",
-    eveningChoice: "rest",
   }),
   defaultProfile({
     grade: 12,
     examNews: "noNews",
     subjectStrength: "ok",
-    afternoonChoice: "study-exam",
-    eveningChoice: "review",
+    selectedSuggestions: [
+      "morning-mock-analysis",
+      "afternoon-study-exam",
+      "evening-review",
+      "night-chem-giyahi",
+    ],
   }),
 ];

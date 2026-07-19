@@ -14,13 +14,9 @@ import { getTrackForProfile } from "./data/subjects.js";
 import {
   EXAM_NEWS,
   SUBJECT_STRENGTH,
-  AFTERNOON_CHOICES,
-  EVENING_CHOICES,
-  BOOKLET_NOTE,
-  getAfternoonChoices,
-  getEveningChoices,
-  defaultAfternoonChoice,
-  defaultEveningChoice,
+  PERIODS,
+  defaultSelectedIds,
+  pickSelectedSuggestions,
   getPeriod,
 } from "./data/flow.js";
 import { describeProfile } from "./engine/rules.js";
@@ -61,17 +57,8 @@ function wizardStepsFor(draft) {
     { id: "nextExam", title: "امتحان بعدی" },
     { id: "examNews", title: "وضعیت خبر" },
     { id: "strength", title: "سطح در این درس" },
-    { id: "afternoon", title: "ظهر چی کار کنی" },
-    { id: "evening", title: "عصر چی کار کنی" }
+    { id: "suggestions", title: "پیشنهادهای روز" }
   );
-  if (
-    draft?.examNews === "cancelled" &&
-    draft?.subjectStrength === "weak" &&
-    draft?.eveningChoice === "next-uncertain"
-  ) {
-    steps.push({ id: "uncertainExam", title: "امتحان بدون خبر" });
-  }
-  steps.push({ id: "suggestions", title: "پیشنهادهای روز" });
   return steps;
 }
 
@@ -215,8 +202,6 @@ function startWizard(existing = null) {
         field: "all",
         examNews: "cancelled",
         subjectStrength: "weak",
-        afternoonChoice: "review",
-        eveningChoice: "review",
         breakShortMin: state.settings.breakShortMin ?? 10,
         breakLongMin: state.settings.breakLongMin ?? 40,
       };
@@ -228,8 +213,6 @@ function startWizard(existing = null) {
     ...base,
     nextExamId: base.nextExamId || first.id,
     nextHeldId: base.nextHeldId || second.id,
-    afternoonChoice: base.afternoonChoice || "review",
-    eveningChoice: base.eveningChoice || "review",
     selectedSuggestions: existing?.selectedSuggestions ? [...existing.selectedSuggestions] : null,
   };
   syncSubjectsAfterTrackChange(state.wizardDraft);
@@ -346,8 +329,6 @@ function renderWizard() {
       const btn = e.target.closest(".choice");
       if (!btn) return;
       d.examNews = btn.dataset.id;
-      d.afternoonChoice = null;
-      d.eveningChoice = null;
       d.selectedSuggestions = null;
       renderWizard();
     };
@@ -370,124 +351,112 @@ function renderWizard() {
       const btn = e.target.closest(".choice");
       if (!btn) return;
       d.subjectStrength = btn.dataset.id;
-      d.afternoonChoice = null;
-      d.eveningChoice = null;
-      d.selectedSuggestions = null;
-      renderWizard();
-    };
-  } else if (step.id === "afternoon") {
-    const answers = wizardAnswers(d);
-    d.afternoonChoice = defaultAfternoonChoice(answers);
-    const choices = getAfternoonChoices({ ...answers, afternoonChoice: d.afternoonChoice });
-    const showBookletNote = choices.some((c) => c.id.startsWith("booklet") || c.id === "continue-analysis");
-    panel.innerHTML = `
-      <h2 class="panel-title">ظهر چی کار کنی؟</h2>
-      <p class="panel-desc">یکی رو انتخاب کن.</p>
-      <div class="choice-grid" id="choice-afternoon">
-        ${choices
-          .map(
-            (c) => `
-          <button type="button" class="choice ${d.afternoonChoice === c.id ? "selected" : ""}" data-id="${c.id}">
-            <span class="choice-title">${escapeHtml(c.label)}</span>
-            <span class="choice-meta">${escapeHtml(c.desc)}</span>
-          </button>`
-          )
-          .join("")}
-      </div>
-      ${
-        showBookletNote
-          ? `<p class="panel-desc" style="margin-top:var(--space-4)">${escapeHtml(BOOKLET_NOTE)}</p>`
-          : ""
-      }`;
-    panel.querySelector("#choice-afternoon").onclick = (e) => {
-      const btn = e.target.closest(".choice");
-      if (!btn) return;
-      d.afternoonChoice = btn.dataset.id;
-      d.selectedSuggestions = null;
-      renderWizard();
-    };
-  } else if (step.id === "evening") {
-    const answers = wizardAnswers(d);
-    d.eveningChoice = defaultEveningChoice(answers);
-    const choices = getEveningChoices({ ...answers, eveningChoice: d.eveningChoice });
-    panel.innerHTML = `
-      <h2 class="panel-title">عصر چی کار کنی؟</h2>
-      <p class="panel-desc">یکی رو انتخاب کن. روتین شب جداگانه می‌آد.</p>
-      <div class="choice-grid" id="choice-evening">
-        ${choices
-          .map(
-            (c) => `
-          <button type="button" class="choice ${d.eveningChoice === c.id ? "selected" : ""}" data-id="${c.id}">
-            <span class="choice-title">${escapeHtml(c.label)}</span>
-            <span class="choice-meta">${escapeHtml(c.desc)}</span>
-          </button>`
-          )
-          .join("")}
-      </div>`;
-    panel.querySelector("#choice-evening").onclick = (e) => {
-      const btn = e.target.closest(".choice");
-      if (!btn) return;
-      d.eveningChoice = btn.dataset.id;
-      d.selectedSuggestions = null;
-      renderWizard();
-    };
-  } else if (step.id === "uncertainExam") {
-    panel.innerHTML = `
-      <h2 class="panel-title">کدوم امتحانه که هنوز خبر رسمیش نیومده؟</h2>
-      <p class="panel-desc">همونی که توش ضعف داری رو بگو.</p>
-      <div class="choice-grid" id="choice-uncertain">
-        ${track.subjects
-          .filter((s) => s.id !== d.nextExamId)
-          .map(
-            (s) => `
-          <button type="button" class="choice ${d.nextHeldId === s.id ? "selected" : ""}" data-id="${s.id}">
-            <span class="choice-title">${s.name}</span>
-          </button>`
-          )
-          .join("")}
-      </div>`;
-    panel.querySelector("#choice-uncertain").onclick = (e) => {
-      const btn = e.target.closest(".choice");
-      if (!btn) return;
-      d.nextHeldId = btn.dataset.id;
       d.selectedSuggestions = null;
       renderWizard();
     };
   } else if (step.id === "suggestions") {
-    const suggestions = previewSuggestions(d);
-    if (!d.selectedSuggestions) {
-      d.selectedSuggestions = suggestions.map((s) => s.id);
-    }
-    const selected = new Set(d.selectedSuggestions);
-    panel.innerHTML = `
-      <h2 class="panel-title">اینا پیشنهادات ساخت برنامه‌ته</h2>
-      <p class="panel-desc">هر کدومو خواستی نگه دار. ساعت نمی‌بندیم؛ فقط صبح / ظهر / عصر / روتین شب.</p>
-      <div class="suggestion-list" id="choice-suggestions">
-        ${suggestions
-          .map((s) => {
-            const period = getPeriod(s.period);
-            const on = selected.has(s.id);
-            return `
-            <button type="button" class="suggestion-card ${on ? "selected" : ""}" data-id="${s.id}" aria-pressed="${on}">
-              <div class="suggestion-period">${period.label}</div>
-              <div class="suggestion-title">${escapeHtml(s.title)}</div>
-              <p class="suggestion-body">${escapeHtml(s.body)}</p>
-              <div class="suggestion-check">${on ? "اوکیه، تو برنامه‌ست ✓" : "بزن اضافه شه"}</div>
-            </button>`;
-          })
-          .join("")}
+    renderSuggestionsStep(panel, d, track);
+  }
+}
+
+function renderSuggestionsStep(panel, d, track) {
+  const suggestions = previewSuggestions(d);
+  if (!d.selectedSuggestions?.length) {
+    d.selectedSuggestions = defaultSelectedIds(suggestions);
+  } else {
+    // keep exclusive groups coherent
+    d.selectedSuggestions = pickSelectedSuggestions(suggestions, d.selectedSuggestions).map((s) => s.id);
+  }
+  const selected = new Set(d.selectedSuggestions);
+  const uncertainOn = selected.has("evening-next-uncertain");
+
+  let html = `
+    <h2 class="panel-title">اینا پیشنهادات ساخت برنامه‌ته</h2>
+    <p class="panel-desc">برای ظهر و عصر چند تا گزینه با «یا» هست — از هر بازه یکی رو انتخاب کن. صبح و روتین شب ثابت‌ان.</p>`;
+
+  for (const period of PERIODS) {
+    const items = suggestions.filter((s) => s.period === period.id);
+    if (!items.length) continue;
+    const multi = items.length > 1;
+    html += `
+      <div class="suggestion-period-block">
+        <div class="suggestion-period-heading">
+          <strong>${period.label}</strong>
+          <span>${multi ? `${toPersianDigits(items.length)} پیشنهاد — یکی رو انتخاب کن` : "پیشنهاد این بازه"}</span>
+        </div>
+        <div class="suggestion-list" data-period="${period.id}">
+          ${items
+            .map((s) => {
+              const on = selected.has(s.id);
+              return `
+              <button type="button" class="suggestion-card ${on ? "selected" : ""}" data-id="${s.id}" data-group="${s.exclusiveGroup || ""}" aria-pressed="${on}">
+                <div class="suggestion-period">${multi ? "یا" : period.label}</div>
+                <div class="suggestion-title">${escapeHtml(s.title)}</div>
+                <p class="suggestion-body">${escapeHtml(s.body)}</p>
+                <div class="suggestion-check">${on ? "انتخاب شد ✓" : multi ? "بزن اینو انتخاب کن" : "تو برنامه‌ست"}</div>
+              </button>`;
+            })
+            .join("")}
+        </div>
       </div>`;
-    panel.querySelector("#choice-suggestions").onclick = (e) => {
+  }
+
+  if (uncertainOn) {
+    html += `
+      <div class="suggestion-period-block" id="uncertain-picker">
+        <div class="suggestion-period-heading">
+          <strong>کدوم امتحان هنوز خبر رسمیش نیومده؟</strong>
+          <span>همونی که توش ضعف داری</span>
+        </div>
+        <div class="choice-grid" id="choice-uncertain">
+          ${track.subjects
+            .filter((s) => s.id !== d.nextExamId)
+            .map(
+              (s) => `
+            <button type="button" class="choice ${d.nextHeldId === s.id ? "selected" : ""}" data-id="${s.id}">
+              <span class="choice-title">${s.name}</span>
+            </button>`
+            )
+            .join("")}
+        </div>
+      </div>`;
+  }
+
+  panel.innerHTML = html;
+
+  panel.querySelectorAll(".suggestion-list").forEach((list) => {
+    list.onclick = (e) => {
       const btn = e.target.closest(".suggestion-card");
       if (!btn) return;
       const id = btn.dataset.id;
-      const set = new Set(d.selectedSuggestions);
-      if (set.has(id)) set.delete(id);
-      else set.add(id);
-      d.selectedSuggestions = [...set];
+      const group = btn.dataset.group;
+      const sug = suggestions.find((s) => s.id === id);
+      if (!sug) return;
+
+      if (group) {
+        // exclusive OR within period — pick this one
+        const withoutGroup = d.selectedSuggestions.filter((sid) => {
+          const other = suggestions.find((x) => x.id === sid);
+          return !other || other.exclusiveGroup !== group;
+        });
+        d.selectedSuggestions = [...withoutGroup, id];
+      } else {
+        // fixed morning/night — toggle off not allowed if it empties period; keep on
+        if (!selected.has(id)) {
+          d.selectedSuggestions = [...d.selectedSuggestions, id];
+        }
+      }
+      d.selectedSuggestions = pickSelectedSuggestions(suggestions, d.selectedSuggestions).map((s) => s.id);
       renderWizard();
     };
-  }
+  });
+
+  panel.querySelector("#choice-uncertain")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".choice");
+    if (!btn) return;
+    d.nextHeldId = btn.dataset.id;
+    renderWizard();
+  });
 }
 
 function syncSubjectsAfterTrackChange(d) {
@@ -518,8 +487,6 @@ function wizardAnswers(d) {
     nextExamName: subjectName(d),
     examNews: d.examNews,
     subjectStrength: d.subjectStrength,
-    afternoonChoice: d.afternoonChoice,
-    eveningChoice: d.eveningChoice,
     nextHeldId: d.nextHeldId,
     nextHeldName: held?.name || "امتحان بدون خبر رسمی",
   };
@@ -535,10 +502,13 @@ function wizardNav(dir) {
 
   const step = steps[state.wizardStep];
   if (step.id === "suggestions") {
-    if (!state.wizardDraft.selectedSuggestions?.length) {
-      showToast("حداقل یکی از پیشنهادها رو انتخاب کن");
+    const sug = previewSuggestions(state.wizardDraft);
+    const picked = pickSelectedSuggestions(sug, state.wizardDraft.selectedSuggestions);
+    if (picked.length < 2) {
+      showToast("از ظهر و عصر یکی‌یکی انتخاب کن");
       return;
     }
+    state.wizardDraft.selectedSuggestions = picked.map((s) => s.id);
   }
 
   if (state.wizardStep < steps.length - 1) {
@@ -816,31 +786,18 @@ function renderSettings() {
     box.innerHTML = `<p class="empty-state">پروفایلی تنظیم نشده.</p>`;
   } else {
     const info = describeProfile(p);
-    const track = getTrackForProfile(p);
-    const held = track?.subjects?.find((s) => s.id === p.nextHeldId);
-    const answers = {
-      ...wizardAnswers(p),
-      nextExamName: info.nextExam,
-      nextHeldName: held?.name,
-    };
-    const afternoonLabel =
-      getAfternoonChoices(answers).find((c) => c.id === p.afternoonChoice)?.label ||
-      AFTERNOON_CHOICES[p.afternoonChoice]?.label?.(info.nextExam) ||
-      "—";
-    const eveningLabel =
-      getEveningChoices(answers).find((c) => c.id === p.eveningChoice)?.label ||
-      EVENING_CHOICES[p.eveningChoice]?.label?.(info.nextExam) ||
-      "—";
+    const sug = previewSuggestions(p);
+    const picked = pickSelectedSuggestions(sug, p.selectedSuggestions);
+    const afternoon = picked.find((s) => s.period === "afternoon");
+    const evening = picked.find((s) => s.period === "evening");
     box.innerHTML = `
       <div class="summary-row"><span class="k">مسیر</span><span class="v">${info.trackLabel}</span></div>
       <div class="summary-row"><span class="k">امتحان بعدی</span><span class="v">${info.nextExam}</span></div>
       <div class="summary-row"><span class="k">وضعیت خبر</span><span class="v">${info.newsLabel}</span></div>
       <div class="summary-row"><span class="k">سطح در درس</span><span class="v">${info.strengthLabel}</span></div>
-      <div class="summary-row"><span class="k">ظهر</span><span class="v">${afternoonLabel}</span></div>
-      <div class="summary-row"><span class="k">عصر</span><span class="v">${eveningLabel}</span></div>
-      <div class="summary-row"><span class="k">پیشنهادهای فعال</span><span class="v">${toPersianDigits(
-        (p.selectedSuggestions || []).length || 4
-      )}</span></div>
+      <div class="summary-row"><span class="k">ظهر</span><span class="v">${afternoon?.title || "—"}</span></div>
+      <div class="summary-row"><span class="k">عصر</span><span class="v">${evening?.title || "—"}</span></div>
+      <div class="summary-row"><span class="k">پیشنهادهای دیده‌شده</span><span class="v">${toPersianDigits(sug.length)}</span></div>
     `;
   }
   $("#set-break-short").value = state.settings.breakShortMin ?? 10;

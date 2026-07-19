@@ -734,6 +734,32 @@
 }
 
 /* Fluid suggestions */
+.suggestion-period-block {
+  margin-top: var(--space-5);
+}
+
+.suggestion-period-block:first-of-type {
+  margin-top: var(--space-3);
+}
+
+.suggestion-period-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.suggestion-period-heading strong {
+  font-size: var(--fs-lg);
+  color: var(--color-primary);
+}
+
+.suggestion-period-heading span {
+  font-size: var(--fs-xs);
+  color: var(--color-ink-muted);
+}
+
 .suggestion-list {
   display: grid;
   gap: var(--space-3);

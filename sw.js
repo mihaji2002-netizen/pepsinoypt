@@ -1,4 +1,4 @@
-const CACHE = "chaos-v21-next-exam-copy";
+const CACHE = "chaos-v22-coach-line";
 const ASSETS = [
   "./",
   "./index.html",

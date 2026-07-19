@@ -1,7 +1,7 @@
 /**
  * Fluid day-plan flow — coaching paths → day parts (no clock times).
- * For afternoon/evening, ALL "یا" alternatives are returned together;
- * the student picks one per period on the suggestions screen.
+ * For afternoon/evening (and sometimes morning), ALL "یا" alternatives are returned together;
+ * the student picks one per exclusive group on the suggestions screen.
  */
 
 /** @typedef {'morning'|'afternoon'|'evening'|'night'} PeriodId */
@@ -37,33 +37,37 @@ export const SUBJECT_STRENGTH = {
   ok: {
     id: "ok",
     label: "تو این درس قوی‌ام / مشکلی ندارم",
-    desc: "صبح آزمون جامع برای بازیابی تستی، نه قضاوت خودت.",
+    desc: "با توجه به سطح‌ت پیشنهاد روزت رو می‌چینیم.",
   },
 };
 
 export const BOOKLET_NOTE =
   "برای اینکه کم‌کم اطلاعات تستیت برگرده و بتونی بازیابی کنی؛ با درصدها خودتو قضاوت نکن. از آزمون‌های جامع برگزارشده امسال استفاده کن؛ اولویت با ماز و خیلی‌سبز. اگه قبلاً زدی‌شون، الان مدارس برتر و گزینه‌دو.";
 
+export const VIDEO_ARCHIVE_NOTE =
+  "با آرشیو ویدیوهای پارسال. اگه نداری‌شون، می‌تونی پیام بدی برات بفرستیم.";
+
 /**
  * All suggestions for the path — including every OR alternative.
- * Afternoon/evening items share exclusiveGroup so UI picks one of each.
  */
 export function resolveSuggestions(answers) {
+  const grade = Number(answers.grade) || 12;
+  if (grade === 11) return resolveSuggestionsGrade11(answers);
+  return resolveSuggestionsGrade12(answers);
+}
+
+function resolveSuggestionsGrade12(answers) {
   const subjectName = answers.nextExamName || "اون درس";
   const news = answers.examNews || "cancelled";
   const strength = answers.subjectStrength || "weak";
   const list = [];
 
-  // —— صبح (معمولاً یکی) ——
   if (strength === "weak") {
-    list.push(
-      morningStudy(subjectName, answers.nextExamId, news === "cancelled")
-    );
+    list.push(morningStudy(subjectName, answers.nextExamId, news === "cancelled"));
   } else {
     list.push(morningMock());
   }
 
-  // —— ظهر (چند پیشنهاد با «یا») ——
   if (news === "cancelled" && strength === "weak") {
     list.push(
       afternoonReview(subjectName, answers.nextExamId),
@@ -84,14 +88,12 @@ export function resolveSuggestions(answers) {
       afternoonBookletPhysChem()
     );
   } else {
-    // noNews + ok
     list.push(
       afternoonContinueAnalysis(),
       afternoonStudyExam(subjectName, answers.nextExamId, false)
     );
   }
 
-  // —— عصر (چند پیشنهاد با «یا») ——
   if (news === "cancelled" && strength === "weak") {
     list.push(
       eveningReview(subjectName, answers.nextExamId),
@@ -106,12 +108,73 @@ export function resolveSuggestions(answers) {
       eveningBookletPhysChem()
     );
   } else {
-    // noNews weak or ok
     list.push(eveningReview(subjectName, answers.nextExamId), eveningRest(answers));
   }
 
-  // —— روتین شب ——
   list.push(nightRoutineSuggestion());
+  return list;
+}
+
+/** یازدهم — مسیرهای مربی (بدون روتین شب اجباری) */
+function resolveSuggestionsGrade11(answers) {
+  const subjectName = answers.nextExamName || "اون درس";
+  const subjectId = answers.nextExamId;
+  const news = answers.examNews || "cancelled";
+  const strength = answers.subjectStrength || "weak";
+  const postponed = news === "cancelled";
+  const list = [];
+
+  if (news === "cancelled" && strength === "weak") {
+    list.push(morningStudy(subjectName, subjectId, true));
+    list.push(
+      afternoonReview(subjectName, subjectId),
+      afternoonPreread12("bio", "زیست")
+    );
+    list.push(
+      eveningReview(subjectName, subjectId),
+      eveningRest(answers),
+      eveningNextUncertain(answers)
+    );
+  } else if (news === "cancelled" && strength === "ok") {
+    list.push(
+      morningPreread12("bio", "زیست"),
+      morningStudyExclusive(subjectName, subjectId, true)
+    );
+    list.push(
+      afternoonTestMorningPreread(),
+      afternoonStudyExam(subjectName, subjectId, true)
+    );
+    list.push(
+      eveningReview(subjectName, subjectId),
+      eveningRest(answers),
+      eveningPreread12("chem", "شیمی"),
+      eveningPreread12("phys", "فیزیک"),
+      eveningNextUncertain(answers)
+    );
+  } else if (news === "noNews" && strength === "weak") {
+    list.push(morningStudy(subjectName, subjectId, false));
+    list.push(
+      afternoonReview(subjectName, subjectId),
+      afternoonPreread12("bio", "زیست"),
+      afternoonPreread12("chem", "شیمی"),
+      afternoonPreread12("phys", "فیزیک")
+    );
+    list.push(eveningStudyExam(subjectName, subjectId));
+  } else {
+    // noNews + ok
+    list.push(morningStudy(subjectName, subjectId, false));
+    list.push(
+      afternoonPreread12("bio", "زیست"),
+      afternoonStudyExam(subjectName, subjectId, false)
+    );
+    list.push(
+      eveningReview(subjectName, subjectId),
+      eveningRest(answers),
+      eveningPreread12("chem", "شیمی"),
+      eveningPreread12("phys", "فیزیک"),
+      eveningStudyContinue(subjectName, subjectId)
+    );
+  }
 
   return list;
 }
@@ -133,7 +196,6 @@ export function pickSelectedSuggestions(all, selectedIds) {
   const picked = [];
   for (const [, items] of byGroup) {
     if (items.length === 1 && !items[0].exclusiveGroup) {
-      // fixed slots (morning/night): include if selected or no prior selection
       if (!selectedIds?.length || selected.has(items[0].id)) picked.push(items[0]);
       continue;
     }
@@ -154,7 +216,9 @@ function morningStudy(subjectName, subjectId, postponed) {
     id: postponed ? "morning-study-postponed" : "morning-study-exam",
     period: "morning",
     title: `صبح: مطالعه و مرور ${subjectName}`,
-    body: `مطالعه و مرور ${subjectName} — که اگه یهو برگزارش کردن غافلگیر نشی و یکم خونده باشی. 📖`,
+    body: postponed
+      ? `مطالعه و مرور ${subjectName} تعویق‌خورده — که اگه یهو برگزارش کردن غافلگیر نشی و یکم خونده باشی. 📖`
+      : `مطالعه و مرور ${subjectName} — که اگه یهو برگزارش کردن غافلگیر نشی و یکم خونده باشی. 📖`,
     blocks: [
       {
         blockId: "desc-core",
@@ -173,6 +237,24 @@ function morningStudy(subjectName, subjectId, postponed) {
         title: `مرور / خلاصه ${subjectName}`,
       },
     ],
+  });
+}
+
+function morningStudyExclusive(subjectName, subjectId, postponed) {
+  return {
+    ...morningStudy(subjectName, subjectId, postponed),
+    exclusiveGroup: "morning",
+  };
+}
+
+function morningPreread12(subjectId, subjectLabel) {
+  return suggestion({
+    id: `morning-preread12-${subjectId}`,
+    period: "morning",
+    exclusiveGroup: "morning",
+    title: `صبح: پیش‌خوانی ${subjectLabel} دوازدهم`,
+    body: `پیش‌خوانی ${subjectLabel} دوازدهم ${VIDEO_ARCHIVE_NOTE}`,
+    blocks: prereadBlocks(subjectId, subjectLabel),
   });
 }
 
@@ -223,8 +305,8 @@ function afternoonStudyExam(subjectName, subjectId, postponed) {
     exclusiveGroup: "afternoon",
     title: `ظهر: مطالعه ${subjectName}`,
     body: postponed
-      ? `مطالعه ${subjectName} برای اینکه اگه یهو برگزار شد شوکه نشی.`
-      : `مطالعه ${subjectName} برای اینکه اگه یهو برگزار شد شوکه نشی.`,
+      ? `ادامه مطالعه ${subjectName} تعویق‌خورده برای اینکه اگه یهو برگزار شد شوکه نشی.`
+      : `ادامه مطالعه ${subjectName} برای اینکه اگه یهو برگزار شد شوکه نشی.`,
     blocks: continueReviewBlocks(subjectId, subjectName),
   });
 }
@@ -274,6 +356,43 @@ function afternoonBookletPhysChem() {
   });
 }
 
+function afternoonPreread12(subjectId, subjectLabel) {
+  return suggestion({
+    id: `afternoon-preread12-${subjectId}`,
+    period: "afternoon",
+    exclusiveGroup: "afternoon",
+    title: `ظهر: پیش‌خوانی ${subjectLabel} دوازدهم`,
+    body: `پیش‌خوانی ${subjectLabel} دوازدهم ${VIDEO_ARCHIVE_NOTE}`,
+    blocks: prereadBlocks(subjectId, subjectLabel),
+  });
+}
+
+function afternoonTestMorningPreread() {
+  return suggestion({
+    id: "afternoon-test-morning-preread",
+    period: "afternoon",
+    exclusiveGroup: "afternoon",
+    title: "ظهر: تست از مبحثی که صبح پیش‌خوانی کردی",
+    body: "از همون مبحثی که صبح پیش‌خوانی کردی، تست بزن تا ببینی چی ته‌نشین شده.",
+    blocks: [
+      {
+        blockId: "problem-set",
+        durationMin: 70,
+        subjectId: "bio",
+        subjectName: "زیست دوازدهم",
+        title: "تست از پیش‌خوانی صبح",
+        desc: "اولویت با تست‌های همون مبحث.",
+      },
+      { blockId: "break-short", durationMin: 10 },
+      {
+        blockId: "exam-analysis",
+        durationMin: 35,
+        title: "یه نگاه کوتاه به غلط‌ها",
+      },
+    ],
+  });
+}
+
 function eveningReview(subjectName, subjectId) {
   return suggestion({
     id: "evening-review",
@@ -281,6 +400,27 @@ function eveningReview(subjectName, subjectId) {
     exclusiveGroup: "evening",
     title: `عصر: ادامه مرور ${subjectName}`,
     body: `ادامه مرور ${subjectName}.`,
+    blocks: continueReviewBlocks(subjectId, subjectName),
+  });
+}
+
+function eveningStudyExam(subjectName, subjectId) {
+  return suggestion({
+    id: "evening-study-exam",
+    period: "evening",
+    title: `عصر: مطالعه و مرور ${subjectName}`,
+    body: `مطالعه و مرور ${subjectName} — که اگه یهو برگزارش کردن غافلگیر نشی و یکم خونده باشی.`,
+    blocks: continueReviewBlocks(subjectId, subjectName),
+  });
+}
+
+function eveningStudyContinue(subjectName, subjectId) {
+  return suggestion({
+    id: "evening-study-continue",
+    period: "evening",
+    exclusiveGroup: "evening",
+    title: `عصر: ادامه مطالعه ${subjectName}`,
+    body: `ادامه مطالعه ${subjectName} برای اینکه اگه یهو برگزار شد شوکه نشی.`,
     blocks: continueReviewBlocks(subjectId, subjectName),
   });
 }
@@ -314,7 +454,7 @@ const REST_TIPS = [
   {
     title: "عصر: حال‌خوشی عمدی",
     body: "استراحت رو جدی بگیر؛ بخشی از برنامه‌ست، نه تنبلی.",
-    tip: "پیشنهاد: یه آهنگ دوست‌داشتنی، یه صفحه کمیک/داستان کوتاه، یا حرف زدن با رفیق — ولی تایمر بذار، مثلاً ۴۰ دقیقه، بعد برگرد روتین شب.",
+    tip: "پیشنهاد: یه آهنگ دوست‌داشتنی، یه صفحه کمیک/داستان کوتاه، یا حرف زدن با رفیق — ولی تایمر بذار، مثلاً ۴۰ دقیقه، بعد برگرد.",
   },
   {
     title: "عصر: بدن هم سهم داره",
@@ -323,16 +463,15 @@ const REST_TIPS = [
   },
   {
     title: "عصر: خاموشی موقت",
-    body: "یه خاموشی کوچیک قبل روتین شب، شب رو نجات می‌ده.",
+    body: "یه خاموشی کوچیک قبل ادامهٔ روز، کمکت می‌کنه.",
     tip: "پیشنهاد: اعلان‌ها رو ببند، دراز بکش بدون گوشی، یا یه دعا/ذکر کوتاه. هدف اینه استرس بیاد پایین، نه اینکه فیلم سه‌ساعته استارت بزنی.",
   },
 ];
 
 function eveningRest(answers = {}) {
-  const idx =
-    Number.isInteger(answers.restTipIndex)
-      ? answers.restTipIndex
-      : Math.floor(Math.random() * REST_TIPS.length);
+  const idx = Number.isInteger(answers.restTipIndex)
+    ? answers.restTipIndex
+    : Math.floor(Math.random() * REST_TIPS.length);
   const tip = REST_TIPS[((idx % REST_TIPS.length) + REST_TIPS.length) % REST_TIPS.length];
   return suggestion({
     id: "evening-rest",
@@ -386,6 +525,17 @@ function eveningBookletPhysChem() {
   });
 }
 
+function eveningPreread12(subjectId, subjectLabel) {
+  return suggestion({
+    id: `evening-preread12-${subjectId}`,
+    period: "evening",
+    exclusiveGroup: "evening",
+    title: `عصر: پیش‌خوانی ${subjectLabel} دوازدهم`,
+    body: `پیش‌خوانی ${subjectLabel} دوازدهم ${VIDEO_ARCHIVE_NOTE}`,
+    blocks: prereadBlocks(subjectId, subjectLabel),
+  });
+}
+
 function nightRoutineSuggestion() {
   return suggestion({
     id: "night-chem-giyahi",
@@ -411,6 +561,27 @@ function nightRoutineSuggestion() {
       },
     ],
   });
+}
+
+function prereadBlocks(subjectId, subjectLabel) {
+  return [
+    {
+      blockId: "desc-core",
+      durationMin: 70,
+      subjectId,
+      subjectName: `${subjectLabel} دوازدهم`,
+      title: `پیش‌خوانی ${subjectLabel} دوازدهم`,
+      desc: VIDEO_ARCHIVE_NOTE,
+    },
+    { blockId: "break-short", durationMin: 10 },
+    {
+      blockId: "desc-notes",
+      durationMin: 40,
+      subjectId,
+      subjectName: `${subjectLabel} دوازدهم`,
+      title: `یادداشت از پیش‌خوانی ${subjectLabel}`,
+    },
+  ];
 }
 
 function continueReviewBlocks(subjectId, subjectName) {
@@ -483,6 +654,10 @@ export const AFTERNOON_CHOICES = {
   "afternoon-continue-analysis": { label: () => "ادامه تحلیل آزمون" },
   "afternoon-booklet-bio-math": { label: () => "تک‌دفترچه زیست و ریاضی" },
   "afternoon-booklet-phys-chem": { label: () => "تک‌دفترچه فیزیک و شیمی" },
+  "afternoon-preread12-bio": { label: () => "پیش‌خوانی زیست دوازدهم" },
+  "afternoon-preread12-chem": { label: () => "پیش‌خوانی شیمی دوازدهم" },
+  "afternoon-preread12-phys": { label: () => "پیش‌خوانی فیزیک دوازدهم" },
+  "afternoon-test-morning-preread": { label: () => "تست از پیش‌خوانی صبح" },
 };
 
 export const EVENING_CHOICES = {
@@ -491,4 +666,8 @@ export const EVENING_CHOICES = {
   "evening-next-uncertain": { label: () => "امتحان بدون خبر رسمی" },
   "evening-booklet-bio-math": { label: () => "تک‌دفترچه زیست و ریاضی" },
   "evening-booklet-phys-chem": { label: () => "تک‌دفترچه فیزیک و شیمی" },
+  "evening-preread12-chem": { label: () => "پیش‌خوانی شیمی دوازدهم" },
+  "evening-preread12-phys": { label: () => "پیش‌خوانی فیزیک دوازدهم" },
+  "evening-study-exam": { label: (n) => `مطالعه ${n}` },
+  "evening-study-continue": { label: (n) => `ادامه مطالعه ${n}` },
 };

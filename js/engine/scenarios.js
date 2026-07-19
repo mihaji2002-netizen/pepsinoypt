@@ -8,19 +8,18 @@ import { defaultSelectedIds, pickSelectedSuggestions } from "../data/flow.js";
  */
 
 export const GRADES = [11, 12];
-export const FIELDS_11 = ["exp", "math"];
 export const EXAM_NEWS_LIST = ["cancelled", "noNews"];
 export const STRENGTHS = ["weak", "ok"];
 
 export function defaultProfile(overrides = {}) {
   const grade = overrides.grade ?? 12;
-  const field = grade === 12 ? "all" : overrides.field ?? "exp";
+  const field = "all";
   const track = getTrackForProfile({ grade, field });
   const first = track.subjects[0];
   const second = track.subjects[1] || first;
   const base = {
     grade,
-    field: grade === 12 ? "all" : field,
+    field,
     nextExamId: first.id,
     nextExamName: first.name,
     examNews: "cancelled",
@@ -31,7 +30,7 @@ export function defaultProfile(overrides = {}) {
     breakShortMin: 10,
     breakLongMin: 40,
     ...overrides,
-    field: grade === 12 ? "all" : overrides.field ?? field,
+    field: "all",
   };
   const all = previewSuggestions(base);
   if (!base.selectedSuggestions) {
@@ -43,25 +42,39 @@ export function defaultProfile(overrides = {}) {
 export function allScenarioProfiles() {
   const profiles = [];
   for (const grade of GRADES) {
-    const fields = grade === 12 ? ["all"] : FIELDS_11;
-    for (const field of fields) {
-      for (const examNews of EXAM_NEWS_LIST) {
-        for (const subjectStrength of STRENGTHS) {
-          const base = defaultProfile({ grade, field, examNews, subjectStrength });
-          const all = previewSuggestions(base);
-          const afternoonAlts = all.filter((s) => s.period === "afternoon");
-          const eveningAlts = all.filter((s) => s.period === "evening");
-          // one profile per afternoon×evening combination
+    for (const examNews of EXAM_NEWS_LIST) {
+      for (const subjectStrength of STRENGTHS) {
+        const base = defaultProfile({ grade, examNews, subjectStrength });
+        const all = previewSuggestions(base);
+        const morningAlts = all.filter((s) => s.period === "morning" && s.exclusiveGroup === "morning");
+        const morningFixed = all.filter((s) => s.period === "morning" && !s.exclusiveGroup);
+        const afternoonAlts = all.filter((s) => s.period === "afternoon");
+        const eveningAlts = all.filter((s) => s.period === "evening");
+
+        const morningOptions = morningAlts.length ? morningAlts : morningFixed;
+        const eveningOptions = eveningAlts.length ? eveningAlts : [null];
+
+        for (const mo of morningOptions) {
           for (const af of afternoonAlts) {
-            for (const ev of eveningAlts) {
-              const fixed = all.filter((s) => !s.exclusiveGroup).map((s) => s.id);
+            for (const ev of eveningOptions) {
+              const fixed = all
+                .filter((s) => !s.exclusiveGroup && s.period !== "morning")
+                .map((s) => s.id);
+              const morningIds = mo
+                ? [mo.id]
+                : morningFixed.map((s) => s.id);
+              const selected = [
+                ...morningIds,
+                ...fixed,
+                af.id,
+                ...(ev ? [ev.id] : []),
+              ];
               profiles.push(
                 defaultProfile({
                   grade,
-                  field,
                   examNews,
                   subjectStrength,
-                  selectedSuggestions: [...fixed, af.id, ev.id],
+                  selectedSuggestions: selected,
                 })
               );
             }
@@ -93,40 +106,64 @@ export function assertPlanInvariants(plan, profile) {
 
   const titles = plan.blocks.map((b) => b.id);
   if (!plan.blocks.some((b) => b.isPeriodStart)) errors.push("missing period starts");
-  if (!titles.includes("chem-hafziat")) errors.push("missing night chem-hafziat");
-  if (!titles.includes("bio-giyahi-summary")) errors.push("missing night giyahi");
+
+  if (Number(profile.grade) === 12) {
+    if (!titles.includes("chem-hafziat")) errors.push("missing night chem-hafziat");
+    if (!titles.includes("bio-giyahi-summary")) errors.push("missing night giyahi");
+  }
 
   const all = previewSuggestions(profile);
   const afternoonAlts = all.filter((s) => s.period === "afternoon");
   const eveningAlts = all.filter((s) => s.period === "evening");
+  const morningExclusive = all.filter((s) => s.period === "morning" && s.exclusiveGroup === "morning");
 
-  // multi-suggestion paths must expose more than one OR option
-  if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
-    if (afternoonAlts.length < 3) errors.push("weak-postponed afternoon should have 3 alts");
-    if (eveningAlts.length < 3) errors.push("weak-postponed evening should have 3 alts");
-  }
-  if (profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
-    if (afternoonAlts.length < 4) errors.push("ok-postponed afternoon should have 4 alts");
-    if (eveningAlts.length < 4) errors.push("ok-postponed evening should have 4 alts");
-  }
-  if (profile.examNews === "noNews" && profile.subjectStrength === "weak") {
-    if (afternoonAlts.length < 3) errors.push("weak-nonews afternoon should have 3 alts");
-    if (eveningAlts.length < 2) errors.push("weak-nonews evening should have 2 alts");
-  }
-  if (profile.examNews === "noNews" && profile.subjectStrength === "ok") {
-    if (afternoonAlts.length < 2) errors.push("ok-nonews afternoon should have 2 alts");
-    if (eveningAlts.length < 2) errors.push("ok-nonews evening should have 2 alts");
+  if (Number(profile.grade) === 12) {
+    if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
+      if (afternoonAlts.length < 3) errors.push("g12 weak-postponed afternoon should have 3 alts");
+      if (eveningAlts.length < 3) errors.push("g12 weak-postponed evening should have 3 alts");
+    }
+    if (profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
+      if (afternoonAlts.length < 4) errors.push("g12 ok-postponed afternoon should have 4 alts");
+      if (eveningAlts.length < 4) errors.push("g12 ok-postponed evening should have 4 alts");
+    }
+    if (profile.examNews === "noNews" && profile.subjectStrength === "weak") {
+      if (afternoonAlts.length < 3) errors.push("g12 weak-nonews afternoon should have 3 alts");
+      if (eveningAlts.length < 2) errors.push("g12 weak-nonews evening should have 2 alts");
+    }
+    if (profile.examNews === "noNews" && profile.subjectStrength === "ok") {
+      if (afternoonAlts.length < 2) errors.push("g12 ok-nonews afternoon should have 2 alts");
+      if (eveningAlts.length < 2) errors.push("g12 ok-nonews evening should have 2 alts");
+    }
+  } else {
+    // grade 11
+    if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
+      if (afternoonAlts.length < 2) errors.push("g11 weak-postponed afternoon should have 2 alts");
+      if (eveningAlts.length < 3) errors.push("g11 weak-postponed evening should have 3 alts");
+    }
+    if (profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
+      if (morningExclusive.length < 2) errors.push("g11 ok-postponed morning should have 2 alts");
+      if (afternoonAlts.length < 2) errors.push("g11 ok-postponed afternoon should have 2 alts");
+      if (eveningAlts.length < 5) errors.push("g11 ok-postponed evening should have 5 alts");
+    }
+    if (profile.examNews === "noNews" && profile.subjectStrength === "weak") {
+      if (afternoonAlts.length < 4) errors.push("g11 weak-nonews afternoon should have 4 alts");
+      if (eveningAlts.length < 1) errors.push("g11 weak-nonews evening should have 1 option");
+    }
+    if (profile.examNews === "noNews" && profile.subjectStrength === "ok") {
+      if (afternoonAlts.length < 2) errors.push("g11 ok-nonews afternoon should have 2 alts");
+      if (eveningAlts.length < 5) errors.push("g11 ok-nonews evening should have 5 alts");
+    }
   }
 
-  // plan should only include ONE afternoon and ONE evening suggestion
   const picked = pickSelectedSuggestions(all, profile.selectedSuggestions);
   const afPicked = picked.filter((s) => s.period === "afternoon");
   const evPicked = picked.filter((s) => s.period === "evening");
+  const moPicked = picked.filter((s) => s.period === "morning");
   if (afPicked.length !== 1) errors.push(`expected 1 afternoon pick, got ${afPicked.length}`);
   if (evPicked.length !== 1) errors.push(`expected 1 evening pick, got ${evPicked.length}`);
+  if (moPicked.length !== 1) errors.push(`expected 1 morning pick, got ${moPicked.length}`);
 
-  if (profile.subjectStrength === "ok" && !titles.includes("maz-full")) {
-    // only if morning mock was selected (default)
+  if (profile.subjectStrength === "ok" && Number(profile.grade) === 12) {
     if (picked.some((s) => s.id === "morning-mock-analysis") && !titles.includes("maz-full")) {
       errors.push("strong-path missing morning mock");
     }
@@ -168,12 +205,35 @@ export function runAllScenarioTests() {
 
 export function scenarioKey(p) {
   const picked = (p.selectedSuggestions || []).filter(
-    (id) => id.startsWith("afternoon") || id.startsWith("evening")
+    (id) =>
+      id.startsWith("afternoon") ||
+      id.startsWith("evening") ||
+      id.startsWith("morning")
   );
-  return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength}-${picked.join("+") || "default"}`;
+  return `g${p.grade}-all-${p.examNews}-${p.subjectStrength}-${picked.join("+") || "default"}`;
 }
 
 export const SHOWCASE = [
+  defaultProfile({
+    grade: 11,
+    examNews: "cancelled",
+    subjectStrength: "weak",
+    selectedSuggestions: [
+      "morning-study-postponed",
+      "afternoon-preread12-bio",
+      "evening-next-uncertain",
+    ],
+  }),
+  defaultProfile({
+    grade: 11,
+    examNews: "noNews",
+    subjectStrength: "ok",
+    selectedSuggestions: [
+      "morning-study-exam",
+      "afternoon-preread12-bio",
+      "evening-preread12-phys",
+    ],
+  }),
   defaultProfile({
     grade: 12,
     examNews: "cancelled",
@@ -200,6 +260,12 @@ export const SHOWCASE = [
     grade: 12,
     examNews: "noNews",
     subjectStrength: "weak",
+    selectedSuggestions: [
+      "morning-study-exam",
+      "afternoon-review",
+      "evening-rest",
+      "night-chem-giyahi",
+    ],
   }),
   defaultProfile({
     grade: 12,

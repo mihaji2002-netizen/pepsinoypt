@@ -1001,7 +1001,7 @@ function setupPwa() {
   if ("serviceWorker" in navigator) {
     // Reload at most once per version when a new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      const key = "chaos-sw-reload-v18";
+      const key = "chaos-sw-reload-v19";
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
       window.location.reload();

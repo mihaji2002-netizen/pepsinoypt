@@ -1025,9 +1025,22 @@ function saveSettingsFromUi() {
 /* ——— PWA ——— */
 function setupPwa() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {
-      /* optional in file:// */
+    // When a new SW takes over, reload once so logo/signature updates aren't stuck in old cache
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
     });
+    navigator.serviceWorker
+      .register("./sw.js?v=10")
+      .then((reg) => {
+        reg.update?.();
+        setInterval(() => reg.update?.(), 60_000);
+      })
+      .catch(() => {
+        /* optional in file:// */
+      });
   }
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();

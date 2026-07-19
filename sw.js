@@ -1,4 +1,4 @@
-const CACHE = "chaos-v13-hero-day";
+const CACHE = "chaos-v14-natural-home";
 const ASSETS = [
   "./",
   "./index.html",

@@ -15,11 +15,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Syne:wght@700;800&family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./css/tokens.css?v=13" />
-    <link rel="stylesheet" href="./css/base.css?v=13" />
-    <link rel="stylesheet" href="./css/layout.css?v=13" />
-    <link rel="stylesheet" href="./css/components.css?v=13" />
-    <link rel="stylesheet" href="./css/print.css?v=13" />
+    <link rel="stylesheet" href="./css/tokens.css?v=14" />
+    <link rel="stylesheet" href="./css/base.css?v=14" />
+    <link rel="stylesheet" href="./css/layout.css?v=14" />
+    <link rel="stylesheet" href="./css/components.css?v=14" />
+    <link rel="stylesheet" href="./css/print.css?v=14" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -60,46 +60,45 @@
         <section id="view-landing" class="view active" data-view="landing">
           <div class="landing">
             <div class="landing-hero" aria-label="خانه Chaos">
-              <div class="hero-stage" aria-hidden="true">
-                <div class="hero-sky"></div>
-                <div class="hero-stars"></div>
-                <div class="hero-glow"></div>
-                <svg class="hero-arc" viewBox="0 0 360 140" preserveAspectRatio="none">
-                  <path d="M20 118 C 80 18, 280 18, 340 118" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="1.5" stroke-dasharray="4 8" />
-                </svg>
-                <div class="hero-sun"></div>
-                <div class="hero-moon"></div>
-                <div class="hero-ground"></div>
-                <div class="hero-marks">
-                  <span style="--x: 12%">صبح</span>
-                  <span style="--x: 38%">ظهر</span>
-                  <span style="--x: 64%">عصر</span>
-                  <span style="--x: 88%">شب</span>
-                </div>
+              <div class="hero-bg" aria-hidden="true">
+                <div class="hero-window"></div>
+                <div class="hero-desk"></div>
+                <div class="hero-grain"></div>
               </div>
 
               <div class="hero-content">
                 <img
                   class="landing-logo anim-fade-up"
                   src="./assets/brand/pepsino-lab-logo.webp"
-                  width="112"
-                  height="112"
+                  width="104"
+                  height="104"
                   alt="pepsino LAB"
                   decoding="async"
                 />
-                <div class="landing-brand anim-fade-up" style="animation-delay: 70ms">Chaos</div>
-                <h1 class="landing-headline anim-fade-up" style="animation-delay: 130ms">
-                  امتحان جابه‌جا شد؟ برنامه‌ت رو همین‌جا بساز
+                <div class="landing-brand anim-fade-up" style="animation-delay: 60ms">Chaos</div>
+                <h1 class="landing-headline anim-fade-up" style="animation-delay: 120ms">
+                  اگه امتحانا قاطی شدن، یه روزت رو از اینجا جمع کن
                 </h1>
-                <p class="landing-sub anim-fade-up" style="animation-delay: 190ms">
-                  از صبح تا شب، سیال و بدون ساعت‌بندی خشک.
+                <p class="landing-sub anim-fade-up" style="animation-delay: 180ms">
+                  لاگین نمی‌خواد. بگو پایه‌ت چیه و امتحان بعدیت چی — برات یه برنامهٔ واقعی می‌چینم.
                 </p>
-                <p class="hero-whisper anim-fade-up" style="animation-delay: 230ms" id="hero-whisper" aria-live="polite">
-                  صبح هنوز آرومه — یه پارت محکم بزن
-                </p>
-                <div class="landing-cta anim-fade-up" style="animation-delay: 280ms">
-                  <button type="button" class="btn btn-primary" id="btn-start-wizard">بزن بریم 🚀</button>
-                  <button type="button" class="btn btn-ghost btn-on-hero hidden" id="btn-skip-landing">برنامه امروز 📅</button>
+                <div class="landing-cta anim-fade-up" style="animation-delay: 240ms">
+                  <button type="button" class="btn btn-primary" id="btn-start-wizard">شروع کنیم</button>
+                  <button type="button" class="btn btn-ghost btn-on-hero hidden" id="btn-skip-landing">برنامه امروز</button>
+                </div>
+
+                <div class="landing-connect anim-fade-up" style="animation-delay: 300ms">
+                  <a class="connect-link" href="https://t.me/pepsinogenacademy" target="_blank" rel="noopener noreferrer">
+                    کانال پپسینوژن
+                  </a>
+                  <a
+                    class="connect-link connect-link-ask"
+                    href="https://t.me/HidenChat_Bot?start=490501953"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    اگه سوالی راجع به برنامه داشتی، ازم بپرس
+                  </a>
                 </div>
               </div>
             </div>
@@ -110,7 +109,7 @@
         <section id="view-wizard" class="view" data-view="wizard">
           <div class="page-hero">
             <h1>برنامه امروزت</h1>
-            <p>امتحان بعدیت چیه؟ کنسل شده یا هنوز خبری نیومده؟ انتخاب کن، پیشنهاد ببین، اجرا کن.</p>
+            <p>چند تا سوال کوتاه؛ بعدش پیشنهادای روزت آماده می‌شه.</p>
           </div>
           <div class="wizard-steps" id="wizard-steps" aria-hidden="true"></div>
           <div class="panel panel-solid" id="wizard-panel"></div>
@@ -125,9 +124,9 @@
           <div id="install-banner" class="install-banner">
             <div class="row-between">
               <div>
-                <strong>نصب Chaos روی موبایل</strong>
+                <strong>Chaos رو بذار رو گوشی</strong>
                 <p style="font-size: var(--fs-sm); color: var(--color-ink-soft); margin-top: 4px">
-                  دسترسی سریع و کار آفلاین.
+                  یه آیکون تو صفحهٔ اصلی؛ آفلاین هم کار می‌کنه.
                 </p>
               </div>
               <button type="button" class="btn btn-accent" id="btn-install">نصب</button>
@@ -209,8 +208,8 @@
         <!-- Focus / execution -->
         <section id="view-focus" class="view" data-view="focus">
           <div class="page-hero">
-            <h1>بزن بریم</h1>
-            <p>تایمر عادی یا پومودورو — هر کدوم راحت‌تری.</p>
+            <h1>تمرکز</h1>
+            <p>تایمر رو بذار رو همون پارت، یا پومودورو — هر جور راحت‌تری.</p>
           </div>
           <div class="panel focus-shell">
             <div class="timer-mode-tabs" id="timer-mode-tabs">
@@ -348,6 +347,11 @@
           <span class="credit-heart" aria-label="قلب">❤</span>
         </p>
         <p class="credit-lab" dir="ltr" lang="en">pepsino LAB</p>
+        <p class="credit-links">
+          <a href="https://t.me/pepsinogenacademy" target="_blank" rel="noopener noreferrer">کانال پپسینوژن</a>
+          <span aria-hidden="true">·</span>
+          <a href="https://t.me/HidenChat_Bot?start=490501953" target="_blank" rel="noopener noreferrer">سوال از مهدی</a>
+        </p>
       </footer>
 
       <nav class="app-nav" id="app-nav" aria-label="ناوبری اصلی">
@@ -370,6 +374,6 @@
       </nav>
     </div>
 
-    <script type="module" src="./js/app.js?v=13"></script>
+    <script type="module" src="./js/app.js?v=14"></script>
   </body>
 </html>

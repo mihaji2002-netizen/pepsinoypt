@@ -1,4 +1,4 @@
-const CACHE = "chaos-v20-uncertain-copy";
+const CACHE = "chaos-v21-next-exam-copy";
 const ASSETS = [
   "./",
   "./index.html",

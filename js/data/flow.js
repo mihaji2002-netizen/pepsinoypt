@@ -521,15 +521,33 @@ function eveningRest(answers = {}) {
 }
 
 function eveningNextUncertain(answers) {
-  const uncertainName = answers.nextHeldName || "امتحان بعدی";
+  const subjectId = answers.nextHeldId || null;
+  const subjectName = answers.nextHeldName || "امتحان بعدی";
   return suggestion({
     id: "evening-next-uncertain",
     period: "evening",
     exclusiveGroup: "evening",
     needsUncertainSubject: true,
-    title: `عصر: زمان گذاشتن برای ${uncertainName}`,
-    body: `اگه امتحان بعد از این امتحانی که لغو شده برات سخته یا فرجه‌ش کمه، الان می‌تونی برای ${uncertainName} زمان بذاری.`,
-    blocks: continueReviewBlocks(answers.nextHeldId, uncertainName),
+    title: "عصر: زمان برای امتحان بعدی",
+    body: "اگه امتحان بعد از این امتحانی که لغو شده برات سخته یا فرجه‌ش کمه، الان می‌تونی براش زمان بذاری.",
+    blocks: [
+      {
+        blockId: "desc-core",
+        durationMin: 60,
+        subjectId,
+        subjectName,
+        title: "زمان برای امتحان بعدی",
+        desc: "اگه برات سخته یا فرجه‌ش کمه، الان براش وقت بذار.",
+      },
+      { blockId: "break-short", durationMin: 10 },
+      {
+        blockId: "problem-set",
+        durationMin: 50,
+        subjectId,
+        subjectName,
+        title: "تمرین امتحان بعدی",
+      },
+    ],
   });
 }
 

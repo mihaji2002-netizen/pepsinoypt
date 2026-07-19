@@ -100,20 +100,22 @@ function normalizeAnswers(profile, track) {
     subjectStrength: profile.subjectStrength || "weak",
     nextHeldId: held?.id || profile.nextHeldId || null,
     nextHeldName: held?.name || profile.nextHeldName || "امتحان بدون خبر رسمی",
+    restTipIndex: profile.restTipIndex,
   };
 }
 
 function expandSuggestion(item) {
   return (item.blocks || []).map((spec) => {
     const blockId = spec.blockId || spec.id;
-    return cloneBlock(blockId, {
+    const overrides = {
       durationMin: spec.durationMin,
       subjectId: spec.subjectId ?? null,
       subjectName: spec.subjectName ?? null,
-      title: spec.title,
-      desc: spec.desc,
       suggestionId: item.id,
-    });
+    };
+    if (spec.title != null) overrides.title = spec.title;
+    if (spec.desc != null) overrides.desc = spec.desc;
+    return cloneBlock(blockId, overrides);
   });
 }
 

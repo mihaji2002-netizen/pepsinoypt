@@ -192,7 +192,7 @@ export const BLOCK_CATALOG = {
   "break-short": {
     id: "break-short",
     title: "یه استراحت کوتاه",
-    desc: "بلند شو از میز؛ اینستا و اینا نه.",
+    desc: "بلند شو از میز، آب بخور؛ اینستا نه.",
     type: "break",
     mode: "mixed",
     defaultMin: 10,
@@ -200,8 +200,8 @@ export const BLOCK_CATALOG = {
   },
   "break-long": {
     id: "break-long",
-    title: "استراحت / غذا",
-    desc: "غذا بخور، یه کم راه برو.",
+    title: "استراحت",
+    desc: "غذا بخور، یه کم راه برو، موبایل رو بذار کنار.",
     type: "break",
     mode: "mixed",
     defaultMin: 40,
@@ -225,15 +225,19 @@ export function getBlock(id) {
 export function cloneBlock(id, overrides = {}) {
   const base = getBlock(id);
   if (!base) throw new Error(`Unknown block: ${id}`);
+  // Drop undefined so it doesn't wipe base title/desc (was showing "undefined" in UI)
+  const clean = Object.fromEntries(
+    Object.entries(overrides).filter(([, v]) => v !== undefined)
+  );
   return {
     ...base,
     instanceId: `${id}-${Math.random().toString(36).slice(2, 9)}`,
-    durationMin: overrides.durationMin ?? base.defaultMin,
-    subjectId: overrides.subjectId ?? base.subjectHint ?? null,
-    subjectName: overrides.subjectName ?? null,
-    title: overrides.title ?? base.title,
-    desc: overrides.desc ?? base.desc,
+    durationMin: clean.durationMin ?? base.defaultMin,
+    subjectId: clean.subjectId ?? base.subjectHint ?? null,
+    subjectName: clean.subjectName ?? null,
+    title: clean.title ?? base.title,
+    desc: clean.desc ?? base.desc,
     done: false,
-    ...overrides,
+    ...clean,
   };
 }

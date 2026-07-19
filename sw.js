@@ -1,4 +1,4 @@
-const CACHE = "masir-v5-multi-alts";
+const CACHE = "masir-v6-rest-tips";
 const ASSETS = [
   "./",
   "./index.html",

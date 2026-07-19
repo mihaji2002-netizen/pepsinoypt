@@ -809,6 +809,7 @@
   font-size: var(--fs-sm);
   color: var(--color-ink-soft);
   line-height: var(--lh-normal);
+  white-space: pre-line;
 }
 
 .suggestion-check {

@@ -16,6 +16,11 @@ import {
   SUBJECT_STRENGTH,
   AFTERNOON_CHOICES,
   EVENING_CHOICES,
+  BOOKLET_NOTE,
+  getAfternoonChoices,
+  getEveningChoices,
+  defaultAfternoonChoice,
+  defaultEveningChoice,
   getPeriod,
 } from "./data/flow.js";
 import { describeProfile } from "./engine/rules.js";
@@ -52,16 +57,19 @@ function wizardStepsFor(draft) {
   if (draft?.grade === 11) {
     steps.push({ id: "field", title: "رشته" });
   }
-  steps.push({ id: "nextExam", title: "امتحان بعدی" }, { id: "examNews", title: "وضعیت خبر" });
-  if (draft?.examNews === "cancelled") {
-    steps.push({ id: "strength", title: "سطح در این درس" });
-    if (draft.subjectStrength === "weak") {
-      steps.push({ id: "afternoon", title: "ظهر چی کار کنی" });
-      steps.push({ id: "evening", title: "عصر چی کار کنی" });
-      if (draft.eveningChoice === "next-uncertain") {
-        steps.push({ id: "uncertainExam", title: "امتحان بدون خبر" });
-      }
-    }
+  steps.push(
+    { id: "nextExam", title: "امتحان بعدی" },
+    { id: "examNews", title: "وضعیت خبر" },
+    { id: "strength", title: "سطح در این درس" },
+    { id: "afternoon", title: "ظهر چی کار کنی" },
+    { id: "evening", title: "عصر چی کار کنی" }
+  );
+  if (
+    draft?.examNews === "cancelled" &&
+    draft?.subjectStrength === "weak" &&
+    draft?.eveningChoice === "next-uncertain"
+  ) {
+    steps.push({ id: "uncertainExam", title: "امتحان بدون خبر" });
   }
   steps.push({ id: "suggestions", title: "پیشنهادهای روز" });
   return steps;
@@ -338,6 +346,8 @@ function renderWizard() {
       const btn = e.target.closest(".choice");
       if (!btn) return;
       d.examNews = btn.dataset.id;
+      d.afternoonChoice = null;
+      d.eveningChoice = null;
       d.selectedSuggestions = null;
       renderWizard();
     };
@@ -360,28 +370,35 @@ function renderWizard() {
       const btn = e.target.closest(".choice");
       if (!btn) return;
       d.subjectStrength = btn.dataset.id;
+      d.afternoonChoice = null;
+      d.eveningChoice = null;
       d.selectedSuggestions = null;
       renderWizard();
     };
   } else if (step.id === "afternoon") {
-    const name = subjectName(d);
+    const answers = wizardAnswers(d);
+    d.afternoonChoice = defaultAfternoonChoice(answers);
+    const choices = getAfternoonChoices({ ...answers, afternoonChoice: d.afternoonChoice });
+    const showBookletNote = choices.some((c) => c.id.startsWith("booklet") || c.id === "continue-analysis");
     panel.innerHTML = `
       <h2 class="panel-title">ظهر چی کار کنی؟</h2>
       <p class="panel-desc">یکی رو انتخاب کن.</p>
       <div class="choice-grid" id="choice-afternoon">
-        ${Object.values(AFTERNOON_CHOICES)
+        ${choices
           .map(
             (c) => `
           <button type="button" class="choice ${d.afternoonChoice === c.id ? "selected" : ""}" data-id="${c.id}">
-            <span class="choice-title">${c.label(name)}</span>
-            <span class="choice-meta">${c.desc}</span>
+            <span class="choice-title">${escapeHtml(c.label)}</span>
+            <span class="choice-meta">${escapeHtml(c.desc)}</span>
           </button>`
           )
           .join("")}
       </div>
-      <p class="panel-desc" style="margin-top:var(--space-4)">
-        اگه آزمون تک‌دفترچه زدی: با درصدا خودتو قضاوت نکن. از آزمون‌های جامع امسال استفاده کن؛ اولویت ماز و خیلی‌سبز. قبلاً زدیشون؟ مدارس برتر و گزینه‌دو.
-      </p>`;
+      ${
+        showBookletNote
+          ? `<p class="panel-desc" style="margin-top:var(--space-4)">${escapeHtml(BOOKLET_NOTE)}</p>`
+          : ""
+      }`;
     panel.querySelector("#choice-afternoon").onclick = (e) => {
       const btn = e.target.closest(".choice");
       if (!btn) return;
@@ -390,17 +407,19 @@ function renderWizard() {
       renderWizard();
     };
   } else if (step.id === "evening") {
-    const name = subjectName(d);
+    const answers = wizardAnswers(d);
+    d.eveningChoice = defaultEveningChoice(answers);
+    const choices = getEveningChoices({ ...answers, eveningChoice: d.eveningChoice });
     panel.innerHTML = `
       <h2 class="panel-title">عصر چی کار کنی؟</h2>
-      <p class="panel-desc">باز هم یکی رو انتخاب کن. روتین شب جداگانه می‌آد.</p>
+      <p class="panel-desc">یکی رو انتخاب کن. روتین شب جداگانه می‌آد.</p>
       <div class="choice-grid" id="choice-evening">
-        ${Object.values(EVENING_CHOICES)
+        ${choices
           .map(
             (c) => `
           <button type="button" class="choice ${d.eveningChoice === c.id ? "selected" : ""}" data-id="${c.id}">
-            <span class="choice-title">${c.label(name)}</span>
-            <span class="choice-meta">${c.desc}</span>
+            <span class="choice-title">${escapeHtml(c.label)}</span>
+            <span class="choice-meta">${escapeHtml(c.desc)}</span>
           </button>`
           )
           .join("")}
@@ -487,6 +506,23 @@ function syncSubjectsAfterTrackChange(d) {
 function subjectName(d) {
   const track = getTrackForProfile(d);
   return track?.subjects?.find((s) => s.id === d.nextExamId)?.name || "این درس";
+}
+
+function wizardAnswers(d) {
+  const track = getTrackForProfile(d);
+  const held = track?.subjects?.find((s) => s.id === d.nextHeldId);
+  return {
+    grade: d.grade,
+    field: d.field,
+    nextExamId: d.nextExamId,
+    nextExamName: subjectName(d),
+    examNews: d.examNews,
+    subjectStrength: d.subjectStrength,
+    afternoonChoice: d.afternoonChoice,
+    eveningChoice: d.eveningChoice,
+    nextHeldId: d.nextHeldId,
+    nextHeldName: held?.name || "امتحان بدون خبر رسمی",
+  };
 }
 
 function wizardNav(dir) {
@@ -782,26 +818,26 @@ function renderSettings() {
     const info = describeProfile(p);
     const track = getTrackForProfile(p);
     const held = track?.subjects?.find((s) => s.id === p.nextHeldId);
-    const afternoonLabel = AFTERNOON_CHOICES[p.afternoonChoice]?.label(info.nextExam) || "—";
+    const answers = {
+      ...wizardAnswers(p),
+      nextExamName: info.nextExam,
+      nextHeldName: held?.name,
+    };
+    const afternoonLabel =
+      getAfternoonChoices(answers).find((c) => c.id === p.afternoonChoice)?.label ||
+      AFTERNOON_CHOICES[p.afternoonChoice]?.label?.(info.nextExam) ||
+      "—";
     const eveningLabel =
-      p.eveningChoice === "next-uncertain"
-        ? `کار روی ${held?.name || "امتحان بدون خبر"}`
-        : EVENING_CHOICES[p.eveningChoice]?.label(info.nextExam) || "—";
+      getEveningChoices(answers).find((c) => c.id === p.eveningChoice)?.label ||
+      EVENING_CHOICES[p.eveningChoice]?.label?.(info.nextExam) ||
+      "—";
     box.innerHTML = `
       <div class="summary-row"><span class="k">مسیر</span><span class="v">${info.trackLabel}</span></div>
       <div class="summary-row"><span class="k">امتحان بعدی</span><span class="v">${info.nextExam}</span></div>
       <div class="summary-row"><span class="k">وضعیت خبر</span><span class="v">${info.newsLabel}</span></div>
-      ${
-        p.examNews === "cancelled"
-          ? `<div class="summary-row"><span class="k">سطح در درس</span><span class="v">${info.strengthLabel}</span></div>`
-          : ""
-      }
-      ${
-        p.examNews === "cancelled" && p.subjectStrength === "weak"
-          ? `<div class="summary-row"><span class="k">ظهر</span><span class="v">${afternoonLabel}</span></div>
-             <div class="summary-row"><span class="k">عصر</span><span class="v">${eveningLabel}</span></div>`
-          : ""
-      }
+      <div class="summary-row"><span class="k">سطح در درس</span><span class="v">${info.strengthLabel}</span></div>
+      <div class="summary-row"><span class="k">ظهر</span><span class="v">${afternoonLabel}</span></div>
+      <div class="summary-row"><span class="k">عصر</span><span class="v">${eveningLabel}</span></div>
       <div class="summary-row"><span class="k">پیشنهادهای فعال</span><span class="v">${toPersianDigits(
         (p.selectedSuggestions || []).length || 4
       )}</span></div>

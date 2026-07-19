@@ -43,17 +43,10 @@ export function computePolicy(profile) {
 function collectFiredRules(profile, suggestions, selectedIds) {
   const fired = [];
   fired.push(`news:${profile.examNews || "cancelled"}`);
-  if (profile.examNews === "cancelled") {
-    fired.push(`strength:${profile.subjectStrength || "weak"}`);
-    if (profile.subjectStrength === "weak") {
-      fired.push(`afternoon:${profile.afternoonChoice || "review"}`);
-      fired.push(`evening:${profile.eveningChoice || "review"}`);
-    } else {
-      fired.push("morning-mock");
-    }
-  } else {
-    fired.push("flexible-hold");
-  }
+  fired.push(`strength:${profile.subjectStrength || "weak"}`);
+  fired.push(`afternoon:${profile.afternoonChoice || "review"}`);
+  fired.push(`evening:${profile.eveningChoice || "review"}`);
+  if (profile.subjectStrength === "ok") fired.push("morning-mock");
   fired.push(`suggestions:${[...selectedIds].length}/${suggestions.length}`);
   return fired;
 }

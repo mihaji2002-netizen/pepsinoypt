@@ -1,6 +1,12 @@
 import { cloneBlock } from "../data/blocks.js";
 import { getTrackForProfile } from "../data/subjects.js";
-import { getPeriod, PERIODS, resolveSuggestions } from "../data/flow.js";
+import {
+  getPeriod,
+  PERIODS,
+  resolveSuggestions,
+  defaultAfternoonChoice,
+  defaultEveningChoice,
+} from "../data/flow.js";
 
 /**
  * Builds a daily plan from fluid-flow answers + selected suggestions.
@@ -85,18 +91,21 @@ export function previewSuggestions(profile) {
 function normalizeAnswers(profile, track) {
   const next = track.subjects.find((s) => s.id === profile.nextExamId) || track.subjects[0];
   const held = track.subjects.find((s) => s.id === profile.nextHeldId) || null;
-  return {
+  const answers = {
     grade: profile.grade,
     field: profile.field || (profile.grade === 12 ? "all" : "exp"),
     nextExamId: next?.id || profile.nextExamId,
     nextExamName: next?.name || profile.nextExamName || "درس",
     examNews: profile.examNews || "cancelled",
     subjectStrength: profile.subjectStrength || "weak",
-    afternoonChoice: profile.afternoonChoice || "review",
-    eveningChoice: profile.eveningChoice || "review",
+    afternoonChoice: profile.afternoonChoice,
+    eveningChoice: profile.eveningChoice,
     nextHeldId: held?.id || profile.nextHeldId || null,
     nextHeldName: held?.name || profile.nextHeldName || "امتحان بدون خبر رسمی",
   };
+  answers.afternoonChoice = defaultAfternoonChoice(answers);
+  answers.eveningChoice = defaultEveningChoice(answers);
+  return answers;
 }
 
 function expandSuggestion(item) {
@@ -126,22 +135,10 @@ function getDayIndex() {
 function buildRationale(answers, selected) {
   const parts = [];
   parts.push(`امتحان بعدیت ${answers.nextExamName}ه.`);
-  if (answers.examNews === "cancelled") {
-    parts.push("تعویق / کنسل خورده.");
-    if (answers.subjectStrength === "weak") {
-      parts.push("گفتی تو این درس ضعیف / مشکل داری.");
-      if (answers.afternoonChoice === "booklet-bio-math") parts.push("ظهر: تک‌دفترچه زیست و ریاضی.");
-      else if (answers.afternoonChoice === "booklet-phys-chem") parts.push("ظهر: تک‌دفترچه فیزیک و شیمی.");
-      else parts.push(`ظهر: ادامه مرور ${answers.nextExamName}.`);
-      if (answers.eveningChoice === "rest") parts.push("عصر: استراحت.");
-      else if (answers.eveningChoice === "next-uncertain") parts.push(`عصر: ${answers.nextHeldName}.`);
-      else parts.push(`عصر: ادامه مرور ${answers.nextExamName}.`);
-    } else {
-      parts.push("گفتی می‌تونی ببندیش؛ صبح آزمون، بعدش مرور تعویقی.");
-    }
-  } else {
-    parts.push("خبر رسمی نیست؛ برنامه رو نرم نگه داشتیم.");
-  }
+  parts.push(answers.examNews === "cancelled" ? "تعویق / کنسل خورده." : "خبر رسمی هنوز نیومده.");
+  parts.push(
+    answers.subjectStrength === "weak" ? "گفتی تو این درس ضعیف / مشکل داری." : "گفتی تو این درس قوی‌ای / مشکلی نداری."
+  );
   parts.push("روتین شب: حفظیات شیمی + گیاهی.");
   const labels = selected.map((s) => getPeriod(s.period).label).join(" · ");
   if (labels) parts.push(`انتخاب‌هات: ${labels}.`);

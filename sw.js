@@ -1,4 +1,4 @@
-const CACHE = "masir-v3-grade12";
+const CACHE = "masir-v4-paths";
 const ASSETS = [
   "./",
   "./index.html",

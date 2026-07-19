@@ -1,4 +1,4 @@
-const CACHE = "masir-v7-cheer-timer";
+const CACHE = "masir-v8-today-timer-edit";
 const ASSETS = [
   "./",
   "./index.html",

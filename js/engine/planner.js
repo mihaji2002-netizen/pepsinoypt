@@ -1,5 +1,5 @@
 import { cloneBlock } from "../data/blocks.js";
-import { getTrack } from "../data/subjects.js";
+import { getTrackForProfile } from "../data/subjects.js";
 import { getPeriod, PERIODS, resolveSuggestions } from "../data/flow.js";
 
 /**
@@ -9,7 +9,7 @@ import { getPeriod, PERIODS, resolveSuggestions } from "../data/flow.js";
 
 export function buildDailyPlan(profile, options = {}) {
   const dayIndex = options.dayIndex ?? getDayIndex();
-  const track = getTrack(`${profile.grade}-${profile.field}`);
+  const track = getTrackForProfile(profile);
   if (!track) {
     throw new Error("مسیر تحصیلی نامعتبر است.");
   }
@@ -77,7 +77,7 @@ export function buildDailyPlan(profile, options = {}) {
 }
 
 export function previewSuggestions(profile) {
-  const track = getTrack(`${profile.grade}-${profile.field}`);
+  const track = getTrackForProfile(profile);
   if (!track) return [];
   return resolveSuggestions(normalizeAnswers(profile, track));
 }
@@ -87,14 +87,15 @@ function normalizeAnswers(profile, track) {
   const held = track.subjects.find((s) => s.id === profile.nextHeldId) || null;
   return {
     grade: profile.grade,
-    field: profile.field,
+    field: profile.field || (profile.grade === 12 ? "all" : "exp"),
     nextExamId: next?.id || profile.nextExamId,
     nextExamName: next?.name || profile.nextExamName || "درس",
     examNews: profile.examNews || "cancelled",
     subjectStrength: profile.subjectStrength || "weak",
-    nextHeldWeak: Boolean(profile.nextHeldWeak),
+    afternoonChoice: profile.afternoonChoice || "review",
+    eveningChoice: profile.eveningChoice || "review",
     nextHeldId: held?.id || profile.nextHeldId || null,
-    nextHeldName: held?.name || profile.nextHeldName || "امتحان بعدی‌ای که برگزار می‌شه",
+    nextHeldName: held?.name || profile.nextHeldName || "امتحان بدون خبر رسمی",
   };
 }
 
@@ -126,20 +127,22 @@ function buildRationale(answers, selected) {
   const parts = [];
   parts.push(`امتحان بعدیت ${answers.nextExamName}ه.`);
   if (answers.examNews === "cancelled") {
-    parts.push("کنسل / تعویق خورده.");
+    parts.push("تعویق / کنسل خورده.");
     if (answers.subjectStrength === "weak") {
-      parts.push("گفتی تو این درس ضعیفی.");
-      parts.push(
-        answers.nextHeldWeak
-          ? `ظهر تا عصر برو سراغ ${answers.nextHeldName}.`
-          : "ظهر تا عصر برو تست و آزمون جامع بزن."
-      );
+      parts.push("گفتی تو این درس ضعیف / مشکل داری.");
+      if (answers.afternoonChoice === "booklet-bio-math") parts.push("ظهر: تک‌دفترچه زیست و ریاضی.");
+      else if (answers.afternoonChoice === "booklet-phys-chem") parts.push("ظهر: تک‌دفترچه فیزیک و شیمی.");
+      else parts.push(`ظهر: ادامه مرور ${answers.nextExamName}.`);
+      if (answers.eveningChoice === "rest") parts.push("عصر: استراحت.");
+      else if (answers.eveningChoice === "next-uncertain") parts.push(`عصر: ${answers.nextHeldName}.`);
+      else parts.push(`عصر: ادامه مرور ${answers.nextExamName}.`);
     } else {
-      parts.push("گفتی می‌تونی ببندیش؛ صبح آزمون، ظهر مرور تعویقی.");
+      parts.push("گفتی می‌تونی ببندیش؛ صبح آزمون، بعدش مرور تعویقی.");
     }
   } else {
     parts.push("خبر رسمی نیست؛ برنامه رو نرم نگه داشتیم.");
   }
+  parts.push("روتین شب: حفظیات شیمی + گیاهی.");
   const labels = selected.map((s) => getPeriod(s.period).label).join(" · ");
   if (labels) parts.push(`انتخاب‌هات: ${labels}.`);
   return parts.join(" ");

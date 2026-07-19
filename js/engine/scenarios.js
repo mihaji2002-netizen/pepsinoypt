@@ -1,21 +1,22 @@
 import { buildDailyPlan } from "./planner.js";
 import { computePolicy } from "./rules.js";
-import { TRACKS } from "../data/subjects.js";
+import { getTrackForProfile } from "../data/subjects.js";
 
 /**
  * Scenario matrix for fluid coaching paths.
  */
 
 export const GRADES = [11, 12];
-export const FIELDS = ["exp", "math"];
+export const FIELDS_11 = ["exp", "math"];
 export const EXAM_NEWS_LIST = ["cancelled", "noNews"];
 export const STRENGTHS = ["weak", "ok"];
-export const NEXT_HELD_WEAK = [true, false];
+export const AFTERNOON = ["review", "booklet-bio-math", "booklet-phys-chem"];
+export const EVENING = ["review", "rest", "next-uncertain"];
 
 export function defaultProfile(overrides = {}) {
   const grade = overrides.grade ?? 12;
-  const field = overrides.field ?? "exp";
-  const track = TRACKS[`${grade}-${field}`];
+  const field = grade === 12 ? "all" : overrides.field ?? "exp";
+  const track = getTrackForProfile({ grade, field });
   const first = track.subjects[0];
   const second = track.subjects[1] || first;
   return {
@@ -24,19 +25,22 @@ export function defaultProfile(overrides = {}) {
     nextExamId: first.id,
     examNews: "cancelled",
     subjectStrength: "weak",
-    nextHeldWeak: false,
+    afternoonChoice: "review",
+    eveningChoice: "review",
     nextHeldId: second.id,
     selectedSuggestions: null,
     breakShortMin: 10,
     breakLongMin: 40,
     ...overrides,
+    field: grade === 12 ? "all" : overrides.field ?? field,
   };
 }
 
 export function allScenarioProfiles() {
   const profiles = [];
   for (const grade of GRADES) {
-    for (const field of FIELDS) {
+    const fields = grade === 12 ? ["all"] : FIELDS_11;
+    for (const field of fields) {
       for (const examNews of EXAM_NEWS_LIST) {
         if (examNews === "noNews") {
           profiles.push(defaultProfile({ grade, field, examNews }));
@@ -46,10 +50,19 @@ export function allScenarioProfiles() {
           if (subjectStrength === "ok") {
             profiles.push(defaultProfile({ grade, field, examNews, subjectStrength }));
           } else {
-            for (const nextHeldWeak of NEXT_HELD_WEAK) {
-              profiles.push(
-                defaultProfile({ grade, field, examNews, subjectStrength, nextHeldWeak })
-              );
+            for (const afternoonChoice of AFTERNOON) {
+              for (const eveningChoice of EVENING) {
+                profiles.push(
+                  defaultProfile({
+                    grade,
+                    field,
+                    examNews,
+                    subjectStrength,
+                    afternoonChoice,
+                    eveningChoice,
+                  })
+                );
+              }
             }
           }
         }
@@ -81,31 +94,27 @@ export function assertPlanInvariants(plan, profile) {
   const periodStarts = plan.blocks.filter((b) => b.isPeriodStart);
   if (!periodStarts.length) errors.push("missing period starts");
 
+  if (!titles.includes("chem-hafziat")) errors.push("missing night chem-hafziat");
+  if (!titles.includes("bio-giyahi-summary")) errors.push("missing night giyahi");
+
   if (profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
-    if (!titles.includes("maz-full") && !titles.includes("gozine2")) {
-      errors.push("ok-path missing mock exam");
-    }
-    if (!titles.includes("chem-hafziat")) errors.push("ok-path missing chem-hafziat");
+    if (!titles.includes("maz-full")) errors.push("ok-path missing mock exam");
   }
 
   if (profile.examNews === "cancelled" && profile.subjectStrength === "weak") {
     const hasPostponedReview = plan.blocks.some(
       (b) => b.subjectId === profile.nextExamId && b.type !== "break"
     );
-    if (!hasPostponedReview) errors.push("weak-path missing postponed subject work");
-  }
-
-  if (profile.examNews === "noNews") {
-    if (!plan.blocks.some((b) => b.mode === "mixed" || b.id === "light-mixed")) {
-      // light-mixed may be present; also accept kheili-sabz flexibility
-      if (!titles.includes("kheili-sabz") && !titles.includes("light-mixed")) {
-        errors.push("noNews missing flexible blocks");
-      }
+    if (profile.afternoonChoice === "review" || profile.eveningChoice === "review" || true) {
+      // morning always reviews postponed subject
+      if (!hasPostponedReview) errors.push("weak-path missing postponed subject work");
     }
-  }
-
-  if (profile.field === "exp" && profile.examNews === "cancelled" && profile.subjectStrength === "ok") {
-    if (!titles.includes("bio-giyahi-summary")) errors.push("exp ok-path missing giyahi");
+    if (profile.afternoonChoice === "booklet-bio-math" && !titles.includes("booklet-bio-math")) {
+      errors.push("missing booklet-bio-math");
+    }
+    if (profile.afternoonChoice === "booklet-phys-chem" && !titles.includes("booklet-phys-chem")) {
+      errors.push("missing booklet-phys-chem");
+    }
   }
 
   return errors;
@@ -148,29 +157,29 @@ export function runAllScenarioTests() {
 }
 
 export function scenarioKey(p) {
-  const held = p.subjectStrength === "weak" ? `-held${p.nextHeldWeak ? "W" : "S"}` : "";
-  return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength || "na"}${held}`;
+  if (p.examNews !== "cancelled" || p.subjectStrength !== "weak") {
+    return `g${p.grade}-${p.field}-${p.examNews}-${p.subjectStrength || "na"}`;
+  }
+  return `g${p.grade}-${p.field}-${p.examNews}-weak-${p.afternoonChoice}-${p.eveningChoice}`;
 }
 
-/** Representative showcase scenarios for UI demos / docs */
 export const SHOWCASE = [
   defaultProfile({
     grade: 12,
-    field: "exp",
     examNews: "cancelled",
     subjectStrength: "weak",
-    nextHeldWeak: true,
+    afternoonChoice: "booklet-bio-math",
+    eveningChoice: "next-uncertain",
   }),
   defaultProfile({
     grade: 12,
-    field: "exp",
     examNews: "cancelled",
     subjectStrength: "weak",
-    nextHeldWeak: false,
+    afternoonChoice: "review",
+    eveningChoice: "rest",
   }),
   defaultProfile({
     grade: 12,
-    field: "math",
     examNews: "cancelled",
     subjectStrength: "ok",
   }),

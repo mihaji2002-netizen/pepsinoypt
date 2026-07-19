@@ -1,13 +1,12 @@
-import { getTrack } from "../data/subjects.js";
+import { getTrackForProfile } from "../data/subjects.js";
 import { EXAM_NEWS, SUBJECT_STRENGTH, resolveSuggestions } from "../data/flow.js";
 
 /**
  * Lightweight policy helpers for the fluid coaching flow.
- * Kept as pure functions for tests and settings summary.
  */
 
 export function computePolicy(profile) {
-  const track = getTrack(`${profile.grade}-${profile.field}`);
+  const track = getTrackForProfile(profile);
   const suggestions = resolveSuggestions({
     grade: profile.grade,
     field: profile.field,
@@ -15,7 +14,8 @@ export function computePolicy(profile) {
     nextExamName: track?.subjects?.find((s) => s.id === profile.nextExamId)?.name,
     examNews: profile.examNews,
     subjectStrength: profile.subjectStrength,
-    nextHeldWeak: profile.nextHeldWeak,
+    afternoonChoice: profile.afternoonChoice,
+    eveningChoice: profile.eveningChoice,
     nextHeldId: profile.nextHeldId,
     nextHeldName: track?.subjects?.find((s) => s.id === profile.nextHeldId)?.name,
   });
@@ -30,7 +30,8 @@ export function computePolicy(profile) {
     trackId: track?.id,
     examNews: profile.examNews,
     subjectStrength: profile.subjectStrength,
-    nextHeldWeak: Boolean(profile.nextHeldWeak),
+    afternoonChoice: profile.afternoonChoice,
+    eveningChoice: profile.eveningChoice,
     suggestionIds: suggestions.map((s) => s.id),
     selectedIds: [...selectedIds],
     shortBreakMin: profile.breakShortMin ?? 10,
@@ -45,7 +46,8 @@ function collectFiredRules(profile, suggestions, selectedIds) {
   if (profile.examNews === "cancelled") {
     fired.push(`strength:${profile.subjectStrength || "weak"}`);
     if (profile.subjectStrength === "weak") {
-      fired.push(profile.nextHeldWeak ? "next-held-weak" : "tests-focus");
+      fired.push(`afternoon:${profile.afternoonChoice || "review"}`);
+      fired.push(`evening:${profile.eveningChoice || "review"}`);
     } else {
       fired.push("morning-mock");
     }
@@ -57,7 +59,7 @@ function collectFiredRules(profile, suggestions, selectedIds) {
 }
 
 export function describeProfile(profile) {
-  const track = getTrack(`${profile.grade}-${profile.field}`);
+  const track = getTrackForProfile(profile);
   const news = EXAM_NEWS[profile.examNews];
   const strength = SUBJECT_STRENGTH[profile.subjectStrength];
   const next = track?.subjects?.find((s) => s.id === profile.nextExamId);

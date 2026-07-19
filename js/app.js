@@ -10,8 +10,14 @@ import {
   clearAll,
 } from "./core/storage.js";
 import { buildDailyPlan, applyCompletionState, calcProgress, todayKey, previewSuggestions } from "./engine/planner.js";
-import { TRACKS } from "./data/subjects.js";
-import { EXAM_NEWS, SUBJECT_STRENGTH, getPeriod } from "./data/flow.js";
+import { getTrackForProfile } from "./data/subjects.js";
+import {
+  EXAM_NEWS,
+  SUBJECT_STRENGTH,
+  AFTERNOON_CHOICES,
+  EVENING_CHOICES,
+  getPeriod,
+} from "./data/flow.js";
 import { describeProfile } from "./engine/rules.js";
 import { runAllScenarioTests } from "./engine/scenarios.js";
 import { FocusTimer } from "./components/timer.js";
@@ -42,16 +48,19 @@ const timer = new FocusTimer({
 });
 
 function wizardStepsFor(draft) {
-  const steps = [
-    { id: "grade", title: "پایه" },
-    { id: "field", title: "رشته" },
-    { id: "nextExam", title: "امتحان بعدی" },
-    { id: "examNews", title: "وضعیت خبر" },
-  ];
+  const steps = [{ id: "grade", title: "پایه" }];
+  if (draft?.grade === 11) {
+    steps.push({ id: "field", title: "رشته" });
+  }
+  steps.push({ id: "nextExam", title: "امتحان بعدی" }, { id: "examNews", title: "وضعیت خبر" });
   if (draft?.examNews === "cancelled") {
     steps.push({ id: "strength", title: "سطح در این درس" });
     if (draft.subjectStrength === "weak") {
-      steps.push({ id: "nextHeld", title: "امتحان برگزارشدنی" });
+      steps.push({ id: "afternoon", title: "ظهر چی کار کنی" });
+      steps.push({ id: "evening", title: "عصر چی کار کنی" });
+      if (draft.eveningChoice === "next-uncertain") {
+        steps.push({ id: "uncertainExam", title: "امتحان بدون خبر" });
+      }
     }
   }
   steps.push({ id: "suggestions", title: "پیشنهادهای روز" });
@@ -191,26 +200,31 @@ function showView(name) {
 /* ——— Wizard ——— */
 function startWizard(existing = null) {
   state.wizardStep = 0;
-  const track = existing ? TRACKS[`${existing.grade}-${existing.field}`] : TRACKS["12-exp"];
-  const first = track.subjects[0];
-  const second = track.subjects[1] || first;
-  state.wizardDraft = existing
-    ? {
-        ...existing,
-        selectedSuggestions: existing.selectedSuggestions ? [...existing.selectedSuggestions] : null,
-      }
+  const base = existing
+    ? { ...existing }
     : {
         grade: 12,
-        field: "exp",
-        nextExamId: first.id,
+        field: "all",
         examNews: "cancelled",
         subjectStrength: "weak",
-        nextHeldWeak: false,
-        nextHeldId: second.id,
-        selectedSuggestions: null,
+        afternoonChoice: "review",
+        eveningChoice: "review",
         breakShortMin: state.settings.breakShortMin ?? 10,
         breakLongMin: state.settings.breakLongMin ?? 40,
       };
+  if (base.grade === 12) base.field = "all";
+  const track = getTrackForProfile(base);
+  const first = track.subjects[0];
+  const second = track.subjects[1] || first;
+  state.wizardDraft = {
+    ...base,
+    nextExamId: base.nextExamId || first.id,
+    nextHeldId: base.nextHeldId || second.id,
+    afternoonChoice: base.afternoonChoice || "review",
+    eveningChoice: base.eveningChoice || "review",
+    selectedSuggestions: existing?.selectedSuggestions ? [...existing.selectedSuggestions] : null,
+  };
+  syncSubjectsAfterTrackChange(state.wizardDraft);
   renderWizard();
   showView("wizard");
 }
@@ -234,7 +248,7 @@ function renderWizard() {
   const panel = $("#wizard-panel");
   const step = steps[state.wizardStep];
   const d = state.wizardDraft;
-  const track = TRACKS[`${d.grade}-${d.field}`];
+  const track = getTrackForProfile(d);
 
   $("#wizard-prev").disabled = state.wizardStep === 0;
   $("#wizard-next").textContent = state.wizardStep === steps.length - 1 ? "ساخت برنامه" : "بعدی";
@@ -257,6 +271,7 @@ function renderWizard() {
       const btn = e.target.closest(".choice");
       if (!btn) return;
       d.grade = Number(btn.dataset.grade);
+      d.field = d.grade === 12 ? "all" : d.field === "all" ? "exp" : d.field || "exp";
       syncSubjectsAfterTrackChange(d);
       renderWizard();
     };
@@ -282,7 +297,7 @@ function renderWizard() {
   } else if (step.id === "nextExam") {
     panel.innerHTML = `
       <h2 class="panel-title">امتحان بعدیت چیه؟</h2>
-      <p class="panel-desc">از لیست ${track.label} یکی رو انتخاب کن.</p>
+      <p class="panel-desc">از دروس امتحانی ${track.label} یکی رو انتخاب کن.</p>
       <div class="choice-grid" id="choice-exam-subj">
         ${track.subjects
           .map(
@@ -301,6 +316,7 @@ function renderWizard() {
         const alt = track.subjects.find((s) => s.id !== d.nextExamId);
         if (alt) d.nextHeldId = alt.id;
       }
+      d.selectedSuggestions = null;
       renderWizard();
     };
   } else if (step.id === "examNews") {
@@ -328,7 +344,7 @@ function renderWizard() {
   } else if (step.id === "strength") {
     panel.innerHTML = `
       <h2 class="panel-title">تو «${escapeHtml(subjectName(d))}» چطوری؟</h2>
-      <p class="panel-desc">راستشو بگو؛ صبح و ظهرت با این عوض می‌شه.</p>
+      <p class="panel-desc">راستشو بگو؛ پیشنهادای روز با این عوض می‌شه.</p>
       <div class="choice-grid" id="choice-strength">
         ${Object.values(SUBJECT_STRENGTH)
           .map(
@@ -347,46 +363,77 @@ function renderWizard() {
       d.selectedSuggestions = null;
       renderWizard();
     };
-  } else if (step.id === "nextHeld") {
+  } else if (step.id === "afternoon") {
+    const name = subjectName(d);
     panel.innerHTML = `
-      <h2 class="panel-title">امتحان بعدی‌ای که قراره برگزار بشه رو ضعیفی؟</h2>
-      <p class="panel-desc">آره؟ ظهر همون درس رو کار می‌کنی. نه؟ می‌ریم سراغ تست و آزمون جامع.</p>
-      <div class="choice-grid cols-2" id="choice-held-weak" style="margin-bottom: var(--space-4)">
-        <button type="button" class="choice ${d.nextHeldWeak ? "selected" : ""}" data-weak="1">
-          <span class="choice-title">آره، ضعیفم</span>
-        </button>
-        <button type="button" class="choice ${!d.nextHeldWeak ? "selected" : ""}" data-weak="0">
-          <span class="choice-title">نه، ضعیف نیستم</span>
-        </button>
+      <h2 class="panel-title">ظهر چی کار کنی؟</h2>
+      <p class="panel-desc">یکی رو انتخاب کن.</p>
+      <div class="choice-grid" id="choice-afternoon">
+        ${Object.values(AFTERNOON_CHOICES)
+          .map(
+            (c) => `
+          <button type="button" class="choice ${d.afternoonChoice === c.id ? "selected" : ""}" data-id="${c.id}">
+            <span class="choice-title">${c.label(name)}</span>
+            <span class="choice-meta">${c.desc}</span>
+          </button>`
+          )
+          .join("")}
       </div>
-      <div class="field ${d.nextHeldWeak ? "" : "hidden"}" id="held-subject-wrap">
-        <label>کدوم امتحانه؟</label>
-        <div class="choice-grid" id="choice-held-subj">
-          ${track.subjects
-            .filter((s) => s.id !== d.nextExamId)
-            .map(
-              (s) => `
-            <button type="button" class="choice ${d.nextHeldId === s.id ? "selected" : ""}" data-id="${s.id}">
-              <span class="choice-title">${s.name}</span>
-            </button>`
-            )
-            .join("")}
-        </div>
-      </div>`;
-    panel.querySelector("#choice-held-weak").onclick = (e) => {
+      <p class="panel-desc" style="margin-top:var(--space-4)">
+        اگه آزمون تک‌دفترچه زدی: با درصدا خودتو قضاوت نکن. از آزمون‌های جامع امسال استفاده کن؛ اولویت ماز و خیلی‌سبز. قبلاً زدیشون؟ مدارس برتر و گزینه‌دو.
+      </p>`;
+    panel.querySelector("#choice-afternoon").onclick = (e) => {
       const btn = e.target.closest(".choice");
       if (!btn) return;
-      d.nextHeldWeak = btn.dataset.weak === "1";
+      d.afternoonChoice = btn.dataset.id;
       d.selectedSuggestions = null;
       renderWizard();
     };
-    panel.querySelector("#choice-held-subj")?.addEventListener("click", (e) => {
+  } else if (step.id === "evening") {
+    const name = subjectName(d);
+    panel.innerHTML = `
+      <h2 class="panel-title">عصر چی کار کنی؟</h2>
+      <p class="panel-desc">باز هم یکی رو انتخاب کن. روتین شب جداگانه می‌آد.</p>
+      <div class="choice-grid" id="choice-evening">
+        ${Object.values(EVENING_CHOICES)
+          .map(
+            (c) => `
+          <button type="button" class="choice ${d.eveningChoice === c.id ? "selected" : ""}" data-id="${c.id}">
+            <span class="choice-title">${c.label(name)}</span>
+            <span class="choice-meta">${c.desc}</span>
+          </button>`
+          )
+          .join("")}
+      </div>`;
+    panel.querySelector("#choice-evening").onclick = (e) => {
+      const btn = e.target.closest(".choice");
+      if (!btn) return;
+      d.eveningChoice = btn.dataset.id;
+      d.selectedSuggestions = null;
+      renderWizard();
+    };
+  } else if (step.id === "uncertainExam") {
+    panel.innerHTML = `
+      <h2 class="panel-title">کدوم امتحانه که هنوز خبر رسمیش نیومده؟</h2>
+      <p class="panel-desc">همونی که توش ضعف داری رو بگو.</p>
+      <div class="choice-grid" id="choice-uncertain">
+        ${track.subjects
+          .filter((s) => s.id !== d.nextExamId)
+          .map(
+            (s) => `
+          <button type="button" class="choice ${d.nextHeldId === s.id ? "selected" : ""}" data-id="${s.id}">
+            <span class="choice-title">${s.name}</span>
+          </button>`
+          )
+          .join("")}
+      </div>`;
+    panel.querySelector("#choice-uncertain").onclick = (e) => {
       const btn = e.target.closest(".choice");
       if (!btn) return;
       d.nextHeldId = btn.dataset.id;
       d.selectedSuggestions = null;
       renderWizard();
-    });
+    };
   } else if (step.id === "suggestions") {
     const suggestions = previewSuggestions(d);
     if (!d.selectedSuggestions) {
@@ -395,7 +442,7 @@ function renderWizard() {
     const selected = new Set(d.selectedSuggestions);
     panel.innerHTML = `
       <h2 class="panel-title">اینا پیشنهادات ساخت برنامه‌ته</h2>
-      <p class="panel-desc">هر کدومو خواستی نگه دار. ساعت نمی‌بندیم؛ فقط صبح تا ظهر / ظهر تا عصر / عصر تا شب.</p>
+      <p class="panel-desc">هر کدومو خواستی نگه دار. ساعت نمی‌بندیم؛ فقط صبح / ظهر / عصر / روتین شب.</p>
       <div class="suggestion-list" id="choice-suggestions">
         ${suggestions
           .map((s) => {
@@ -425,7 +472,8 @@ function renderWizard() {
 }
 
 function syncSubjectsAfterTrackChange(d) {
-  const track = TRACKS[`${d.grade}-${d.field}`];
+  if (d.grade === 12) d.field = "all";
+  const track = getTrackForProfile(d);
   if (!track) return;
   if (!track.subjects.some((s) => s.id === d.nextExamId)) {
     d.nextExamId = track.subjects[0].id;
@@ -437,7 +485,7 @@ function syncSubjectsAfterTrackChange(d) {
 }
 
 function subjectName(d) {
-  const track = TRACKS[`${d.grade}-${d.field}`];
+  const track = getTrackForProfile(d);
   return track?.subjects?.find((s) => s.id === d.nextExamId)?.name || "این درس";
 }
 
@@ -732,7 +780,13 @@ function renderSettings() {
     box.innerHTML = `<p class="empty-state">پروفایلی تنظیم نشده.</p>`;
   } else {
     const info = describeProfile(p);
-    const held = TRACKS[`${p.grade}-${p.field}`]?.subjects?.find((s) => s.id === p.nextHeldId);
+    const track = getTrackForProfile(p);
+    const held = track?.subjects?.find((s) => s.id === p.nextHeldId);
+    const afternoonLabel = AFTERNOON_CHOICES[p.afternoonChoice]?.label(info.nextExam) || "—";
+    const eveningLabel =
+      p.eveningChoice === "next-uncertain"
+        ? `کار روی ${held?.name || "امتحان بدون خبر"}`
+        : EVENING_CHOICES[p.eveningChoice]?.label(info.nextExam) || "—";
     box.innerHTML = `
       <div class="summary-row"><span class="k">مسیر</span><span class="v">${info.trackLabel}</span></div>
       <div class="summary-row"><span class="k">امتحان بعدی</span><span class="v">${info.nextExam}</span></div>
@@ -744,13 +798,12 @@ function renderSettings() {
       }
       ${
         p.examNews === "cancelled" && p.subjectStrength === "weak"
-          ? `<div class="summary-row"><span class="k">برگزارشدنی</span><span class="v">${
-              p.nextHeldWeak ? held?.name || "ضعیف" : "ضعیف نیست → تست"
-            }</span></div>`
+          ? `<div class="summary-row"><span class="k">ظهر</span><span class="v">${afternoonLabel}</span></div>
+             <div class="summary-row"><span class="k">عصر</span><span class="v">${eveningLabel}</span></div>`
           : ""
       }
       <div class="summary-row"><span class="k">پیشنهادهای فعال</span><span class="v">${toPersianDigits(
-        (p.selectedSuggestions || []).length || 3
+        (p.selectedSuggestions || []).length || 4
       )}</span></div>
     `;
   }

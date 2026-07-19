@@ -1,4 +1,4 @@
-const CACHE = "masir-v2-fluid";
+const CACHE = "masir-v3-grade12";
 const ASSETS = [
   "./",
   "./index.html",

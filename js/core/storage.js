@@ -1,4 +1,4 @@
-const PREFIX = "masir.v2.";
+const PREFIX = "masir.v3.";
 
 export const KEYS = {
   profile: "profile",

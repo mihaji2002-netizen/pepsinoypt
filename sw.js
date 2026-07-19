@@ -1,4 +1,4 @@
-const CACHE = "masir-v4-paths";
+const CACHE = "masir-v5-multi-alts";
 const ASSETS = [
   "./",
   "./index.html",

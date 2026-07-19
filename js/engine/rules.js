@@ -1,5 +1,11 @@
 import { getTrackForProfile } from "../data/subjects.js";
-import { EXAM_NEWS, SUBJECT_STRENGTH, resolveSuggestions } from "../data/flow.js";
+import {
+  EXAM_NEWS,
+  SUBJECT_STRENGTH,
+  resolveSuggestions,
+  defaultSelectedIds,
+  pickSelectedSuggestions,
+} from "../data/flow.js";
 
 /**
  * Lightweight policy helpers for the fluid coaching flow.
@@ -7,47 +13,41 @@ import { EXAM_NEWS, SUBJECT_STRENGTH, resolveSuggestions } from "../data/flow.js
 
 export function computePolicy(profile) {
   const track = getTrackForProfile(profile);
-  const suggestions = resolveSuggestions({
+  const answers = {
     grade: profile.grade,
     field: profile.field,
     nextExamId: profile.nextExamId,
     nextExamName: track?.subjects?.find((s) => s.id === profile.nextExamId)?.name,
     examNews: profile.examNews,
     subjectStrength: profile.subjectStrength,
-    afternoonChoice: profile.afternoonChoice,
-    eveningChoice: profile.eveningChoice,
     nextHeldId: profile.nextHeldId,
     nextHeldName: track?.subjects?.find((s) => s.id === profile.nextHeldId)?.name,
-  });
-
-  const selectedIds = new Set(
-    profile.selectedSuggestions?.length
-      ? profile.selectedSuggestions
-      : suggestions.map((s) => s.id)
-  );
+  };
+  const suggestions = resolveSuggestions(answers);
+  const selectedIds = profile.selectedSuggestions?.length
+    ? profile.selectedSuggestions
+    : defaultSelectedIds(suggestions);
+  const picked = pickSelectedSuggestions(suggestions, selectedIds);
 
   return {
     trackId: track?.id,
     examNews: profile.examNews,
     subjectStrength: profile.subjectStrength,
-    afternoonChoice: profile.afternoonChoice,
-    eveningChoice: profile.eveningChoice,
     suggestionIds: suggestions.map((s) => s.id),
-    selectedIds: [...selectedIds],
+    selectedIds: picked.map((s) => s.id),
+    alternativeCount: suggestions.length,
     shortBreakMin: profile.breakShortMin ?? 10,
     longBreakMin: profile.breakLongMin ?? 40,
-    rulesFired: collectFiredRules(profile, suggestions, selectedIds),
+    rulesFired: collectFiredRules(profile, suggestions, picked),
   };
 }
 
-function collectFiredRules(profile, suggestions, selectedIds) {
+function collectFiredRules(profile, suggestions, picked) {
   const fired = [];
   fired.push(`news:${profile.examNews || "cancelled"}`);
   fired.push(`strength:${profile.subjectStrength || "weak"}`);
-  fired.push(`afternoon:${profile.afternoonChoice || "review"}`);
-  fired.push(`evening:${profile.eveningChoice || "review"}`);
-  if (profile.subjectStrength === "ok") fired.push("morning-mock");
-  fired.push(`suggestions:${[...selectedIds].length}/${suggestions.length}`);
+  fired.push(`alts:${suggestions.length}`);
+  for (const s of picked) fired.push(`pick:${s.id}`);
   return fired;
 }
 

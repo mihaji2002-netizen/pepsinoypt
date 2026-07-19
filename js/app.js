@@ -19,6 +19,7 @@ import {
   pickSelectedSuggestions,
   getPeriod,
 } from "./data/flow.js";
+import { pickCheer } from "./data/cheers.js";
 import { describeProfile } from "./engine/rules.js";
 import { runAllScenarioTests } from "./engine/scenarios.js";
 import { FocusTimer } from "./components/timer.js";
@@ -36,16 +37,20 @@ const state = {
   wizardDraft: null,
   focusIndex: 0,
   deferredInstall: null,
+  cheerPending: false,
 };
 
 const music = new AmbientPlayer();
 const timer = new FocusTimer({
   onTick: renderTimer,
   onComplete: () => {
-    showToast("زمان این بخش تمام شد");
     if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+    finishPartWithCheer();
   },
-  onPhaseChange: () => renderTimer(timer.snapshot()),
+  onPhaseChange: () => {
+    renderTimer(timer.snapshot());
+    syncTimerEditVisibility();
+  },
 });
 
 function wizardStepsFor(draft) {
@@ -146,6 +151,8 @@ function bindGlobal() {
       if (block) timer.setMinutes(block.durationMin);
     }
     $("#timer-toggle").textContent = "شروع";
+    syncTimerEditVisibility();
+    syncTimerEditInputs();
   });
   $("#timer-toggle")?.addEventListener("click", () => {
     timer.toggle();
@@ -154,8 +161,22 @@ function bindGlobal() {
   $("#timer-reset")?.addEventListener("click", () => {
     timer.reset();
     $("#timer-toggle").textContent = "شروع";
+    syncTimerEditInputs();
   });
-  $("#timer-done")?.addEventListener("click", () => completeCurrentFocus());
+  $("#timer-done")?.addEventListener("click", () => finishPartWithCheer());
+  $("#timer-apply")?.addEventListener("click", applyTimerEdit);
+  $$(".timer-adj").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (timer.mode !== "normal") return;
+      timer.adjustMinutes(Number(btn.dataset.adj));
+      syncTimerEditInputs();
+      showToast(Number(btn.dataset.adj) > 0 ? "۵ دقیقه اضافه شد ⏱️" : "۵ دقیقه کم شد ⏱️");
+    });
+  });
+  $("#cheer-continue")?.addEventListener("click", () => {
+    hideCheer();
+    advanceAfterCheer();
+  });
 
   $("#btn-edit-profile")?.addEventListener("click", () => startWizard(state.profile));
   $("#btn-save-settings")?.addEventListener("click", saveSettingsFromUi);
@@ -386,9 +407,9 @@ function renderSuggestionsStep(panel, d, track) {
     if (!items.length) continue;
     const multi = items.length > 1;
     html += `
-      <div class="suggestion-period-block">
+      <div class="suggestion-period-block" data-period="${period.id}">
         <div class="suggestion-period-heading">
-          <strong>${period.label}</strong>
+          <strong>${period.emoji || ""} ${period.label}</strong>
           <span>${multi ? `${toPersianDigits(items.length)} پیشنهاد — یکی رو انتخاب کن` : "پیشنهاد این بازه"}</span>
         </div>
         <div class="suggestion-list" data-period="${period.id}">
@@ -592,26 +613,28 @@ function renderToday() {
       lastPeriod = b.periodId;
       const period = getPeriod(b.periodId);
       html += `
-        <div class="period-header">
+        <div class="period-header" data-period="${period.id}">
+          <span class="period-header-emoji" aria-hidden="true">${period.emoji || ""}</span>
           <div class="period-header-label">${period.label}</div>
         </div>`;
     }
     const typeLabel = typeLabelFa(b.type);
+    const typeEmoji = typeEmojiOf(b.type);
     html += `
-      <article class="timeline-item" data-id="${b.instanceId}">
-        <div class="timeline-dot" data-type="${b.type}" title="${typeLabel}">${typeShort(b.type)}</div>
+      <article class="timeline-item" data-id="${b.instanceId}" data-period="${b.periodId || ""}">
+        <div class="timeline-dot" data-type="${b.type}" title="${typeLabel}">${typeEmoji}</div>
         <div class="timeline-body ${b.done ? "done" : ""}">
           <div class="timeline-meta">
-            <span class="badge">${typeLabel}</span>
+            <span class="badge">${typeEmoji} ${typeLabel}</span>
           </div>
           <h3 class="timeline-title">${escapeHtml(b.title)}</h3>
-          <p class="timeline-desc">${escapeHtml(b.desc)}</p>
+          <p class="timeline-desc">${escapeHtml(b.desc || "")}</p>
           <div class="timeline-actions">
             ${
               b.type !== "break"
-                ? `<button type="button" class="check-btn ${b.done ? "checked" : ""}" data-action="toggle" data-id="${b.instanceId}">${b.done ? "انجام شد ✓" : "تیک بزن"}</button>
-                   <button type="button" class="btn btn-ghost" style="min-height:36px;padding:0.4rem 0.75rem;font-size:var(--fs-xs)" data-action="focus" data-id="${b.instanceId}">شروع این بخش</button>`
-                : `<span style="font-size:var(--fs-xs);color:var(--color-ink-muted)">وقت استراحت — ازش لذت ببر</span>`
+                ? `<button type="button" class="check-btn ${b.done ? "checked" : ""}" data-action="toggle" data-id="${b.instanceId}">${b.done ? "انجام شد ✓" : "تیک بزن ✅"}</button>
+                   <button type="button" class="btn btn-ghost" style="min-height:36px;padding:0.4rem 0.75rem;font-size:var(--fs-xs)" data-action="focus" data-id="${b.instanceId}">شروع این بخش ▶️</button>`
+                : `<span style="font-size:var(--fs-xs);color:var(--color-ink-muted)">☕ وقت استراحت — ازش لذت ببر</span>`
             }
           </div>
         </div>
@@ -663,6 +686,19 @@ function typeShort(type) {
   return map[type] || "·";
 }
 
+function typeEmojiOf(type) {
+  const map = {
+    study: "📖",
+    test: "✏️",
+    review: "🔁",
+    exam: "📝",
+    break: "☕",
+    foundation: "🧱",
+    analysis: "🔍",
+  };
+  return map[type] || "•";
+}
+
 /* ——— Focus ——— */
 function enterFocus() {
   if (!state.plan) ensurePlan();
@@ -671,13 +707,16 @@ function enterFocus() {
     state.focusIndex += 1;
   }
   const block = currentFocusBlock();
-  $("#focus-block-title").textContent = block ? block.title : "فعالیتی باقی نمانده";
+  const emoji = block ? typeEmojiOf(block.type) : "";
+  $("#focus-block-title").textContent = block ? `${emoji} ${block.title}` : "فعالیتی باقی نمونده 💤";
   if (block && timer.mode === "normal") {
     timer.setMinutes(block.durationMin);
   } else if (timer.mode === "pomodoro") {
     timer.setMinutes(state.settings.pomodoroWork || 25);
   }
   renderTimer(timer.snapshot());
+  syncTimerEditVisibility();
+  syncTimerEditInputs();
   renderFocusQueue();
   $("#stat-progress").textContent = `${toPersianDigits(calcProgress(state.plan))}٪`;
 }
@@ -686,10 +725,40 @@ function currentFocusBlock() {
   return state.plan?.blocks?.[state.focusIndex] || null;
 }
 
-function completeCurrentFocus() {
+function finishPartWithCheer() {
+  if (state.cheerPending) return;
   const block = currentFocusBlock();
-  if (!block) return;
-  if (block.type !== "break" && !block.done) {
+  if (!block) {
+    showToast("فعالیتی باقی نمونده");
+    return;
+  }
+  timer.pause();
+  $("#timer-toggle").textContent = "شروع";
+  state.cheerPending = true;
+  showCheer(pickCheer(block));
+}
+
+function showCheer(cheer) {
+  const overlay = $("#cheer-overlay");
+  if (!overlay) {
+    advanceAfterCheer();
+    return;
+  }
+  $("#cheer-emoji").textContent = cheer.emoji;
+  $("#cheer-title").textContent = cheer.title;
+  $("#cheer-text").textContent = cheer.text;
+  overlay.hidden = false;
+}
+
+function hideCheer() {
+  const overlay = $("#cheer-overlay");
+  if (overlay) overlay.hidden = true;
+}
+
+function advanceAfterCheer() {
+  state.cheerPending = false;
+  const block = currentFocusBlock();
+  if (block && block.type !== "break" && !block.done) {
     toggleCompletion(state.plan.dateKey, block.instanceId);
     state.plan = applyCompletionState(state.plan, loadCompletion());
   }
@@ -698,15 +767,46 @@ function completeCurrentFocus() {
     next += 1;
   }
   if (next >= state.plan.blocks.length) {
-    showToast("برنامه امروز تمام شد");
-    state.focusIndex = state.plan.blocks.length - 1;
+    showToast("برنامه امروز تموم شد 🎉");
+    state.focusIndex = Math.max(0, state.plan.blocks.length - 1);
+    showView("today");
   } else {
     state.focusIndex = next;
+    enterFocus();
+    showView("focus");
   }
-  timer.pause();
-  $("#timer-toggle").textContent = "شروع";
-  enterFocus();
   renderToday();
+}
+
+function syncTimerEditVisibility() {
+  const edit = $("#timer-edit");
+  if (!edit) return;
+  edit.classList.toggle("hidden", timer.mode !== "normal");
+}
+
+function syncTimerEditInputs() {
+  const snap = timer.snapshot();
+  const minEl = $("#timer-min");
+  const secEl = $("#timer-sec");
+  if (!minEl || !secEl) return;
+  minEl.value = String(Math.floor(snap.remainingSec / 60));
+  secEl.value = String(snap.remainingSec % 60);
+}
+
+function applyTimerEdit() {
+  if (timer.mode !== "normal") {
+    showToast("تنظیم دستی فقط تو تایمر عادیه");
+    return;
+  }
+  const min = Number($("#timer-min")?.value || 0);
+  const sec = Number($("#timer-sec")?.value || 0);
+  if (!Number.isFinite(min) || !Number.isFinite(sec) || min + sec <= 0) {
+    showToast("یه زمان درست وارد کن");
+    return;
+  }
+  timer.setTimeParts(min, sec);
+  syncTimerEditInputs();
+  showToast("زمان تایمر تنظیم شد ⏱️");
 }
 
 function renderFocusQueue() {
@@ -739,19 +839,22 @@ function renderTimer(snap) {
   $("#timer-phase-label").textContent =
     snap.mode === "pomodoro"
       ? snap.phase === "work"
-        ? "فاز کار"
+        ? "فاز کار 💪"
         : snap.phase === "longBreak"
-          ? "استراحت بلند"
-          : "استراحت کوتاه"
+          ? "استراحت بلند ☕"
+          : "استراحت کوتاه 🌿"
       : snap.running
-        ? "در حال اجرا"
-        : "آماده";
+        ? "در حال اجرا ⏳"
+        : "آماده ✋";
   $("#stat-pomos").textContent = toPersianDigits(snap.pomodoroCount);
   $("#stat-phase").textContent =
     snap.mode === "pomodoro" ? (snap.phase === "work" ? "کار" : "استراحت") : "عادی";
   if (state.plan) {
     $("#stat-progress").textContent = `${toPersianDigits(calcProgress(state.plan))}٪`;
   }
+  const active = document.activeElement;
+  const editing = active && (active.id === "timer-min" || active.id === "timer-sec");
+  if (!editing) syncTimerEditInputs();
 }
 
 /* ——— Music ——— */

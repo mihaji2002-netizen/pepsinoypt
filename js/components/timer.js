@@ -39,10 +39,34 @@ export class FocusTimer {
   }
 
   setMinutes(min) {
-    const sec = Math.max(1, Math.round(min * 60));
+    const sec = Math.max(1, Math.round(Number(min) * 60));
     this.totalSec = sec;
     this.remainingSec = sec;
     this.onTick(this.snapshot());
+  }
+
+  /** Set remaining time from minutes + seconds (normal mode edit). */
+  setTimeParts(minutes, seconds) {
+    const m = Math.max(0, Math.floor(Number(minutes) || 0));
+    const s = Math.min(59, Math.max(0, Math.floor(Number(seconds) || 0)));
+    const total = Math.max(1, m * 60 + s);
+    const wasRunning = this.running;
+    this.pause();
+    this.totalSec = total;
+    this.remainingSec = total;
+    this.onTick(this.snapshot());
+    if (wasRunning) this.start();
+  }
+
+  /** Nudge remaining by delta minutes (can be negative). */
+  adjustMinutes(delta) {
+    const next = Math.max(1, this.remainingSec + Math.round(Number(delta) * 60));
+    const wasRunning = this.running;
+    this.pause();
+    this.remainingSec = next;
+    this.totalSec = Math.max(this.totalSec, next);
+    this.onTick(this.snapshot());
+    if (wasRunning) this.start();
   }
 
   loadBlock(durationMin) {

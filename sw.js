@@ -1,4 +1,4 @@
-const CACHE = "masir-v6-rest-tips";
+const CACHE = "masir-v7-cheer-timer";
 const ASSETS = [
   "./",
   "./index.html",
@@ -16,6 +16,7 @@ const ASSETS = [
   "./js/data/subjects.js",
   "./js/data/blocks.js",
   "./js/data/flow.js",
+  "./js/data/cheers.js",
   "./js/components/timer.js",
   "./js/components/music.js",
   "./js/components/export.js",

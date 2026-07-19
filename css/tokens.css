@@ -1,38 +1,48 @@
 :root {
   /* Brand — مسیر */
-  --color-bg-0: #e8eef2;
-  --color-bg-1: #f4f7f9;
-  --color-bg-2: #dce6ec;
-  --color-surface: rgba(255, 255, 255, 0.82);
+  --color-bg-0: #e7f3f1;
+  --color-bg-1: #f3faf8;
+  --color-bg-2: #d8ebe6;
+  --color-surface: rgba(255, 255, 255, 0.88);
   --color-surface-solid: #ffffff;
   --color-surface-elevated: #ffffff;
-  --color-ink: #132027;
-  --color-ink-soft: #3d5160;
-  --color-ink-muted: #6b7f8c;
-  --color-border: rgba(19, 32, 39, 0.1);
-  --color-border-strong: rgba(19, 32, 39, 0.18);
+  --color-ink: #12261f;
+  --color-ink-soft: #355047;
+  --color-ink-muted: #6a8178;
+  --color-border: rgba(18, 38, 31, 0.1);
+  --color-border-strong: rgba(18, 38, 31, 0.18);
 
-  --color-primary: #0b3a4a;
-  --color-primary-soft: #14586c;
-  --color-primary-tint: rgba(11, 58, 74, 0.08);
-  --color-accent: #e07a3d;
-  --color-accent-soft: #f0a06a;
-  --color-accent-tint: rgba(224, 122, 61, 0.12);
+  --color-primary: #0f6b5c;
+  --color-primary-soft: #178a76;
+  --color-primary-tint: rgba(15, 107, 92, 0.1);
+  --color-accent: #e25c2e;
+  --color-accent-soft: #f08a5c;
+  --color-accent-tint: rgba(226, 92, 46, 0.14);
 
-  --color-success: #1f7a4d;
-  --color-success-tint: rgba(31, 122, 77, 0.12);
-  --color-warning: #b7791f;
-  --color-warning-tint: rgba(183, 121, 31, 0.12);
-  --color-danger: #b42318;
-  --color-danger-tint: rgba(180, 35, 24, 0.1);
+  --color-success: #1d8f55;
+  --color-success-tint: rgba(29, 143, 85, 0.14);
+  --color-warning: #c47a12;
+  --color-warning-tint: rgba(196, 122, 18, 0.14);
+  --color-danger: #c0392b;
+  --color-danger-tint: rgba(192, 57, 43, 0.12);
 
-  --color-block-study: #0b3a4a;
-  --color-block-test: #1f5f8b;
-  --color-block-review: #2a6f5f;
-  --color-block-exam: #9a4a1f;
-  --color-block-break: #6b7f8c;
-  --color-block-foundation: #5c4a8a;
-  --color-block-analysis: #8a4a5c;
+  /* Period palette — distinct & vivid */
+  --color-period-morning: #0f9d8a;
+  --color-period-morning-soft: #d8f5f0;
+  --color-period-afternoon: #2b6fe0;
+  --color-period-afternoon-soft: #dde8ff;
+  --color-period-evening: #e67a22;
+  --color-period-evening-soft: #ffe8d4;
+  --color-period-night: #3d5a80;
+  --color-period-night-soft: #e4ebf5;
+
+  --color-block-study: #0f6b5c;
+  --color-block-test: #2b6fe0;
+  --color-block-review: #1d8f55;
+  --color-block-exam: #e25c2e;
+  --color-block-break: #7a8f99;
+  --color-block-foundation: #3d5a80;
+  --color-block-analysis: #c45c78;
 
   --font-display: "Vazirmatn", "Tahoma", sans-serif;
   --font-body: "Vazirmatn", "Tahoma", sans-serif;

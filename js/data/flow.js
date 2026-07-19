@@ -521,14 +521,14 @@ function eveningRest(answers = {}) {
 }
 
 function eveningNextUncertain(answers) {
-  const uncertainName = answers.nextHeldName || "امتحان بدون خبر رسمی";
+  const uncertainName = answers.nextHeldName || "امتحان بعدی";
   return suggestion({
     id: "evening-next-uncertain",
     period: "evening",
     exclusiveGroup: "evening",
     needsUncertainSubject: true,
-    title: "عصر: کار روی امتحانی که هنوز خبر رسمیش نیومده",
-    body: `اگه توش ضعف داری، کار کردن روی ${uncertainName}.`,
+    title: `عصر: زمان گذاشتن برای ${uncertainName}`,
+    body: `اگه امتحان بعد از این امتحانی که لغو شده برات سخته یا فرجه‌ش کمه، الان می‌تونی برای ${uncertainName} زمان بذاری.`,
     blocks: continueReviewBlocks(answers.nextHeldId, uncertainName),
   });
 }
@@ -694,7 +694,7 @@ export const AFTERNOON_CHOICES = {
 export const EVENING_CHOICES = {
   "evening-review": { label: (n) => `ادامه مرور ${n}` },
   "evening-rest": { label: () => "استراحت" },
-  "evening-next-uncertain": { label: () => "امتحان بدون خبر رسمی" },
+  "evening-next-uncertain": { label: () => "زمان برای امتحان بعدی" },
   "evening-booklet-bio-math": { label: () => "تک‌دفترچه زیست و ریاضی" },
   "evening-booklet-phys-chem": { label: () => "تک‌دفترچه فیزیک و شیمی" },
   "evening-preread12-chem": { label: () => "پیش‌خوانی شیمی دوازدهم" },

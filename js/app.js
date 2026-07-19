@@ -78,6 +78,7 @@ function init() {
   bindGlobal();
   setupMusicUi();
   setupPwa();
+  setupHeroWhisper();
 
   if (state.profile && isOnboardingDone()) {
     ensurePlan();
@@ -86,6 +87,26 @@ function init() {
   } else {
     showView("landing");
   }
+}
+
+function setupHeroWhisper() {
+  const el = $("#hero-whisper");
+  if (!el) return;
+  const lines = [
+    "صبح هنوز آرومه — یه پارت محکم بزن",
+    "ظهر انرژی اومده؛ تست یا جزوه، انتخاب با تو",
+    "عصر اگه افتادی کم کن، ولی قطع نکن",
+    "شب آروم جمع کن؛ نه کرونومتر، نه فشار",
+  ];
+  let i = 0;
+  setInterval(() => {
+    el.classList.add("is-swap");
+    window.setTimeout(() => {
+      i = (i + 1) % lines.length;
+      el.textContent = lines[i];
+      el.classList.remove("is-swap");
+    }, 420);
+  }, 4500);
 }
 
 function bindGlobal() {
@@ -1024,7 +1045,7 @@ function setupPwa() {
   if ("serviceWorker" in navigator) {
     // Reload at most once per version when a new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      const key = "chaos-sw-reload-v12";
+      const key = "chaos-sw-reload-v13";
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
       window.location.reload();

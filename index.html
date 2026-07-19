@@ -15,11 +15,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Syne:wght@700;800&family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./css/tokens.css?v=12" />
-    <link rel="stylesheet" href="./css/base.css?v=12" />
-    <link rel="stylesheet" href="./css/layout.css?v=12" />
-    <link rel="stylesheet" href="./css/components.css?v=12" />
-    <link rel="stylesheet" href="./css/print.css?v=12" />
+    <link rel="stylesheet" href="./css/tokens.css?v=13" />
+    <link rel="stylesheet" href="./css/base.css?v=13" />
+    <link rel="stylesheet" href="./css/layout.css?v=13" />
+    <link rel="stylesheet" href="./css/components.css?v=13" />
+    <link rel="stylesheet" href="./css/print.css?v=13" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -59,63 +59,47 @@
         <!-- Landing / Onboarding entry -->
         <section id="view-landing" class="view active" data-view="landing">
           <div class="landing">
-            <div>
-              <div class="landing-logo-wrap anim-fade-up">
+            <div class="landing-hero" aria-label="خانه Chaos">
+              <div class="hero-stage" aria-hidden="true">
+                <div class="hero-sky"></div>
+                <div class="hero-stars"></div>
+                <div class="hero-glow"></div>
+                <svg class="hero-arc" viewBox="0 0 360 140" preserveAspectRatio="none">
+                  <path d="M20 118 C 80 18, 280 18, 340 118" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="1.5" stroke-dasharray="4 8" />
+                </svg>
+                <div class="hero-sun"></div>
+                <div class="hero-moon"></div>
+                <div class="hero-ground"></div>
+                <div class="hero-marks">
+                  <span style="--x: 12%">صبح</span>
+                  <span style="--x: 38%">ظهر</span>
+                  <span style="--x: 64%">عصر</span>
+                  <span style="--x: 88%">شب</span>
+                </div>
+              </div>
+
+              <div class="hero-content">
                 <img
-                  class="landing-logo"
+                  class="landing-logo anim-fade-up"
                   src="./assets/brand/pepsino-lab-logo.webp"
-                  width="280"
-                  height="280"
-                  alt="pepsino LAB — GET ACTIVE TO GROW"
+                  width="112"
+                  height="112"
+                  alt="pepsino LAB"
                   decoding="async"
                 />
-              </div>
-              <div class="landing-brand anim-fade-up" style="animation-delay: 60ms">Chaos</div>
-              <h1 class="landing-headline anim-fade-up" style="animation-delay: 120ms">
-                امتحان جابه‌جا شد؟ برنامه‌ت رو همین‌جا بساز
-              </h1>
-              <p class="landing-sub anim-fade-up" style="animation-delay: 180ms">
-                ثبت‌نام نمی‌خواد. بگو پایه‌ات چیه، امتحان بعدیت چیه، کنسل شده یا خبر نیومده — برات پیشنهاد می‌دیم چی کار کنی.
-              </p>
-              <div class="landing-cta anim-fade-up" style="animation-delay: 240ms">
-                <button type="button" class="btn btn-primary" id="btn-start-wizard">بزن بریم 🚀</button>
-                <button type="button" class="btn btn-ghost hidden" id="btn-skip-landing">برنامه امروز 📅</button>
-              </div>
-            </div>
-            <div class="landing-day anim-fade-in" style="animation-delay: 300ms" aria-label="ریتم یک روز با Chaos">
-              <div class="landing-day-sky" aria-hidden="true"></div>
-              <div class="landing-day-beats">
-                <div class="day-beat" data-period="morning" style="--i: 0">
-                  <span class="day-beat-orb" aria-hidden="true"></span>
-                  <span class="day-beat-emoji" aria-hidden="true">☀️</span>
-                  <div>
-                    <strong>صبح</strong>
-                    <p>دنیا هنوز آرومه — یه پارت محکم بزن، بقیه روز راحت‌تره</p>
-                  </div>
-                </div>
-                <div class="day-beat" data-period="afternoon" style="--i: 1">
-                  <span class="day-beat-orb" aria-hidden="true"></span>
-                  <span class="day-beat-emoji" aria-hidden="true">🌤️</span>
-                  <div>
-                    <strong>ظهر</strong>
-                    <p>انرژی اومده؛ تست بزن یا جزوه بخون — خودت انتخاب کن</p>
-                  </div>
-                </div>
-                <div class="day-beat" data-period="evening" style="--i: 2">
-                  <span class="day-beat-orb" aria-hidden="true"></span>
-                  <span class="day-beat-emoji" aria-hidden="true">🌇</span>
-                  <div>
-                    <strong>عصر</strong>
-                    <p>اگه افتادی، کم کن ولی قطع نکن — یه دور کوتاه هم کافیه</p>
-                  </div>
-                </div>
-                <div class="day-beat" data-period="night" style="--i: 3">
-                  <span class="day-beat-orb" aria-hidden="true"></span>
-                  <span class="day-beat-emoji" aria-hidden="true">🌙</span>
-                  <div>
-                    <strong>شب</strong>
-                    <p>آروم جمع کن؛ نه کرونومتر، نه فشار — فقط تمومش کن</p>
-                  </div>
+                <div class="landing-brand anim-fade-up" style="animation-delay: 70ms">Chaos</div>
+                <h1 class="landing-headline anim-fade-up" style="animation-delay: 130ms">
+                  امتحان جابه‌جا شد؟ برنامه‌ت رو همین‌جا بساز
+                </h1>
+                <p class="landing-sub anim-fade-up" style="animation-delay: 190ms">
+                  از صبح تا شب، سیال و بدون ساعت‌بندی خشک.
+                </p>
+                <p class="hero-whisper anim-fade-up" style="animation-delay: 230ms" id="hero-whisper" aria-live="polite">
+                  صبح هنوز آرومه — یه پارت محکم بزن
+                </p>
+                <div class="landing-cta anim-fade-up" style="animation-delay: 280ms">
+                  <button type="button" class="btn btn-primary" id="btn-start-wizard">بزن بریم 🚀</button>
+                  <button type="button" class="btn btn-ghost btn-on-hero hidden" id="btn-skip-landing">برنامه امروز 📅</button>
                 </div>
               </div>
             </div>
@@ -386,6 +370,6 @@
       </nav>
     </div>
 
-    <script type="module" src="./js/app.js?v=12"></script>
+    <script type="module" src="./js/app.js?v=13"></script>
   </body>
 </html>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b3a4a" />
+    <meta name="theme-color" content="#0f6b5c" />
     <meta name="description" content="مسیر — برنامهٔ سیال روزانه وقتی امتحان‌ها تعویق می‌خورند؛ استاتیک، آفلاین، بدون ثبت‌نام." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -23,6 +23,20 @@
   </head>
   <body>
     <div id="app" class="app-shell">
+      <div id="cheer-overlay" class="cheer-overlay" hidden aria-live="polite">
+        <div class="cheer-card">
+          <div class="cheer-sticker" aria-hidden="true">
+            <span class="cheer-emoji" id="cheer-emoji">✨</span>
+            <span class="cheer-burst">🌟</span>
+            <span class="cheer-burst b2">💫</span>
+            <span class="cheer-burst b3">⭐</span>
+          </div>
+          <h2 class="cheer-title" id="cheer-title">تموم شد</h2>
+          <p class="cheer-text" id="cheer-text"></p>
+          <button type="button" class="btn btn-primary" id="cheer-continue">بریم بعدی ➜</button>
+        </div>
+      </div>
+
       <header class="app-header">
         <div class="brand" aria-label="برند مسیر">
           <div class="brand-mark" aria-hidden="true">
@@ -49,7 +63,7 @@
         <section id="view-landing" class="view" data-view="landing">
           <div class="landing">
             <div>
-              <div class="landing-brand anim-fade-up">مسیر</div>
+              <div class="landing-brand anim-fade-up">مسیر 🛤️</div>
               <h1 class="landing-headline anim-fade-up" style="animation-delay: 80ms">
                 امتحان جابه‌جا شد؟ برنامه‌ت رو همین‌جا بساز
               </h1>
@@ -57,13 +71,13 @@
                 ثبت‌نام نمی‌خواد. بگو پایه‌ات چیه، امتحان بعدیت چیه، کنسل شده یا خبر نیومده — برات پیشنهاد می‌دیم چی کار کنی.
               </p>
               <div class="landing-cta anim-fade-up" style="animation-delay: 200ms">
-                <button type="button" class="btn btn-primary" id="btn-start-wizard">بزن بریم</button>
-                <button type="button" class="btn btn-ghost hidden" id="btn-skip-landing">برنامه امروز</button>
+                <button type="button" class="btn btn-primary" id="btn-start-wizard">بزن بریم 🚀</button>
+                <button type="button" class="btn btn-ghost hidden" id="btn-skip-landing">برنامه امروز 📅</button>
               </div>
             </div>
             <div class="landing-visual anim-fade-in" style="animation-delay: 260ms" role="img" aria-label="نمای مسیر مطالعه روزانه">
               <p class="landing-visual-caption">
-                صبح تا ظهر، ظهر تا عصر، عصر تا شب — بدون ساعت‌بندی خشک.
+                ☀️ صبح · 🌤️ ظهر · 🧡 عصر · 🌙 شب — بدون ساعت‌بندی خشک.
               </p>
             </div>
           </div>
@@ -101,7 +115,7 @@
             <div>
               <div class="day-date" id="today-date"></div>
               <h1 id="today-title" style="font-size: var(--fs-2xl); color: var(--color-primary); margin-top: 4px">
-                برنامه امروز
+                برنامه امروز 📋
               </h1>
             </div>
             <div class="panel" style="padding: var(--space-4)">
@@ -159,10 +173,30 @@
             <div class="timer-display" id="timer-display">۲۵:۰۰</div>
             <div style="font-size: var(--fs-sm); color: var(--color-ink-muted)" id="timer-phase-label">آماده</div>
 
+            <div class="timer-edit" id="timer-edit">
+              <p class="timer-edit-hint">⏱️ تایمر عادی رو دستی تنظیم کن</p>
+              <div class="timer-edit-row">
+                <button type="button" class="btn btn-ghost timer-adj" data-adj="-5" aria-label="۵ دقیقه کم">−۵</button>
+                <div class="timer-edit-fields">
+                  <label>
+                    دقیقه
+                    <input type="number" id="timer-min" min="0" max="300" inputmode="numeric" />
+                  </label>
+                  <span class="timer-edit-colon">:</span>
+                  <label>
+                    ثانیه
+                    <input type="number" id="timer-sec" min="0" max="59" inputmode="numeric" />
+                  </label>
+                </div>
+                <button type="button" class="btn btn-ghost timer-adj" data-adj="5" aria-label="۵ دقیقه اضافه">+۵</button>
+              </div>
+              <button type="button" class="btn btn-accent btn-block" id="timer-apply">اعمال زمان ✏️</button>
+            </div>
+
             <div class="timer-controls">
               <button type="button" class="btn btn-ghost" id="timer-reset">ریست</button>
               <button type="button" class="btn btn-primary" id="timer-toggle">شروع</button>
-              <button type="button" class="btn btn-ghost" id="timer-done">انجام شد</button>
+              <button type="button" class="btn btn-ghost" id="timer-done">انجام شد ✓</button>
             </div>
 
             <div class="pomodoro-stats">

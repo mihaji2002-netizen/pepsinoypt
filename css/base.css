@@ -19,8 +19,9 @@ body {
   line-height: var(--lh-normal);
   color: var(--color-ink);
   background:
-    radial-gradient(1200px 600px at 100% -10%, rgba(224, 122, 61, 0.12), transparent 55%),
-    radial-gradient(900px 500px at -10% 20%, rgba(11, 58, 74, 0.1), transparent 50%),
+    radial-gradient(1200px 600px at 100% -10%, rgba(226, 92, 46, 0.16), transparent 55%),
+    radial-gradient(900px 500px at -10% 20%, rgba(15, 107, 92, 0.14), transparent 50%),
+    radial-gradient(700px 420px at 70% 90%, rgba(43, 111, 224, 0.1), transparent 55%),
     linear-gradient(165deg, var(--color-bg-1) 0%, var(--color-bg-0) 45%, var(--color-bg-2) 100%);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;

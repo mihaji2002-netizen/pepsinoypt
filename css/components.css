@@ -520,6 +520,68 @@
   font-weight: 800;
 }
 
+/* Today view inline runner */
+.today-runner {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--color-border-strong);
+  background:
+    radial-gradient(120% 80% at 100% 0%, var(--color-period-morning-soft), transparent 55%),
+    linear-gradient(165deg, var(--color-surface-solid), var(--color-period-afternoon-soft));
+  animation: fade-up 0.45s var(--ease-out) both;
+}
+
+.today-runner-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.today-runner-label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--color-ink-muted);
+  margin-bottom: 4px;
+}
+
+.today-runner-title {
+  font-size: var(--fs-md);
+  font-weight: 800;
+  color: var(--color-ink);
+  line-height: 1.35;
+}
+
+.timer-display-inline {
+  font-size: clamp(1.85rem, 7vw, 2.6rem);
+  margin: 0;
+  flex-shrink: 0;
+  min-width: 5.5ch;
+  text-align: left;
+}
+
+.today-runner .timer-edit {
+  max-width: none;
+  margin-bottom: var(--space-3);
+}
+
+.today-runner-controls {
+  margin-top: var(--space-2);
+}
+
+@media (max-width: 520px) {
+  .today-runner-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .timer-display-inline {
+    text-align: center;
+  }
+}
+
 .timer-mode-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

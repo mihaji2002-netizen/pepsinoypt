@@ -139,10 +139,44 @@
           </div>
 
           <div class="row" style="margin-bottom: var(--space-4); flex-wrap: wrap">
-            <button type="button" class="btn btn-primary" id="btn-start-focus">اجرای برنامه</button>
+            <button type="button" class="btn btn-primary" id="btn-start-focus">اجرای برنامه ▶️</button>
             <button type="button" class="btn btn-ghost" id="btn-export">خروجی تصویر</button>
             <button type="button" class="btn btn-ghost" id="btn-print">چاپ</button>
             <button type="button" class="btn btn-ghost" id="btn-rebuild">بازسازی امروز</button>
+          </div>
+
+          <div id="today-runner" class="today-runner hidden" aria-live="polite">
+            <div class="today-runner-top">
+              <div>
+                <div class="today-runner-label">در حال اجرا از برنامه امروز ⏱️</div>
+                <div class="today-runner-title" id="today-runner-title">—</div>
+              </div>
+              <div class="timer-display timer-display-inline" id="today-runner-display">۲۵:۰۰</div>
+            </div>
+            <div class="timer-edit" data-timer-edit="today">
+              <p class="timer-edit-hint">زمان این پارت رو دستی عوض کن</p>
+              <div class="timer-edit-row">
+                <button type="button" class="btn btn-ghost timer-adj js-timer-adj" data-adj="-5" aria-label="۵ دقیقه کم">−۵</button>
+                <div class="timer-edit-fields">
+                  <label>
+                    دقیقه
+                    <input type="number" class="js-timer-min" min="0" max="300" inputmode="numeric" />
+                  </label>
+                  <span class="timer-edit-colon">:</span>
+                  <label>
+                    ثانیه
+                    <input type="number" class="js-timer-sec" min="0" max="59" inputmode="numeric" />
+                  </label>
+                </div>
+                <button type="button" class="btn btn-ghost timer-adj js-timer-adj" data-adj="5" aria-label="۵ دقیقه اضافه">+۵</button>
+              </div>
+              <button type="button" class="btn btn-accent btn-block js-timer-apply">اعمال زمان ✏️</button>
+            </div>
+            <div class="timer-controls today-runner-controls">
+              <button type="button" class="btn btn-ghost" id="today-timer-reset">ریست</button>
+              <button type="button" class="btn btn-primary" id="today-timer-toggle">شروع</button>
+              <button type="button" class="btn btn-ghost" id="today-timer-done">انجام شد ✓</button>
+            </div>
           </div>
 
           <p class="engine-note" id="engine-note"></p>
@@ -173,24 +207,24 @@
             <div class="timer-display" id="timer-display">۲۵:۰۰</div>
             <div style="font-size: var(--fs-sm); color: var(--color-ink-muted)" id="timer-phase-label">آماده</div>
 
-            <div class="timer-edit" id="timer-edit">
+            <div class="timer-edit" id="timer-edit" data-timer-edit="focus">
               <p class="timer-edit-hint">⏱️ تایمر عادی رو دستی تنظیم کن</p>
               <div class="timer-edit-row">
-                <button type="button" class="btn btn-ghost timer-adj" data-adj="-5" aria-label="۵ دقیقه کم">−۵</button>
+                <button type="button" class="btn btn-ghost timer-adj js-timer-adj" data-adj="-5" aria-label="۵ دقیقه کم">−۵</button>
                 <div class="timer-edit-fields">
                   <label>
                     دقیقه
-                    <input type="number" id="timer-min" min="0" max="300" inputmode="numeric" />
+                    <input type="number" class="js-timer-min" id="timer-min" min="0" max="300" inputmode="numeric" />
                   </label>
                   <span class="timer-edit-colon">:</span>
                   <label>
                     ثانیه
-                    <input type="number" id="timer-sec" min="0" max="59" inputmode="numeric" />
+                    <input type="number" class="js-timer-sec" id="timer-sec" min="0" max="59" inputmode="numeric" />
                   </label>
                 </div>
-                <button type="button" class="btn btn-ghost timer-adj" data-adj="5" aria-label="۵ دقیقه اضافه">+۵</button>
+                <button type="button" class="btn btn-ghost timer-adj js-timer-adj" data-adj="5" aria-label="۵ دقیقه اضافه">+۵</button>
               </div>
-              <button type="button" class="btn btn-accent btn-block" id="timer-apply">اعمال زمان ✏️</button>
+              <button type="button" class="btn btn-accent btn-block js-timer-apply" id="timer-apply">اعمال زمان ✏️</button>
             </div>
 
             <div class="timer-controls">

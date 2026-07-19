@@ -38,6 +38,7 @@ const state = {
   focusIndex: 0,
   deferredInstall: null,
   cheerPending: false,
+  runOnToday: false,
 };
 
 const music = new AmbientPlayer();
@@ -100,7 +101,11 @@ function bindGlobal() {
         if (view === "today" || view === "focus") ensurePlan();
       }
       if (view === "settings") renderSettings();
-      if (view === "focus") enterFocus();
+      if (view === "focus") {
+        // Don't wipe an in-progress today session when switching tabs
+        enterFocus({ resetTime: !(timer.running || state.runOnToday) });
+      }
+      if (view === "today" && state.runOnToday) showTodayRunner(true);
       showView(view);
     });
   });
@@ -120,8 +125,7 @@ function bindGlobal() {
   $("#wizard-next")?.addEventListener("click", () => wizardNav(1));
 
   $("#btn-start-focus")?.addEventListener("click", () => {
-    enterFocus();
-    showView("focus");
+    startRunOnToday();
   });
   $("#btn-export")?.addEventListener("click", async () => {
     if (!state.plan) return;
@@ -154,25 +158,54 @@ function bindGlobal() {
     syncTimerEditVisibility();
     syncTimerEditInputs();
   });
+  const syncToggleLabels = () => {
+    const label = timer.running ? "توقف" : timer.remainingSec < timer.totalSec ? "ادامه" : "شروع";
+    if ($("#timer-toggle")) $("#timer-toggle").textContent = label;
+    if ($("#today-timer-toggle")) $("#today-timer-toggle").textContent = label;
+  };
+
   $("#timer-toggle")?.addEventListener("click", () => {
     timer.toggle();
-    $("#timer-toggle").textContent = timer.running ? "توقف" : "ادامه";
+    syncToggleLabels();
+  });
+  $("#today-timer-toggle")?.addEventListener("click", () => {
+    timer.setMode("normal");
+    syncTimerEditVisibility();
+    timer.toggle();
+    syncToggleLabels();
   });
   $("#timer-reset")?.addEventListener("click", () => {
     timer.reset();
-    $("#timer-toggle").textContent = "شروع";
+    syncToggleLabels();
+    syncTimerEditInputs();
+  });
+  $("#today-timer-reset")?.addEventListener("click", () => {
+    timer.reset();
+    syncToggleLabels();
     syncTimerEditInputs();
   });
   $("#timer-done")?.addEventListener("click", () => finishPartWithCheer());
-  $("#timer-apply")?.addEventListener("click", applyTimerEdit);
-  $$(".timer-adj").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      if (timer.mode !== "normal") return;
-      timer.adjustMinutes(Number(btn.dataset.adj));
+  $("#today-timer-done")?.addEventListener("click", () => finishPartWithCheer());
+
+  document.addEventListener("click", (e) => {
+    const applyBtn = e.target.closest(".js-timer-apply");
+    if (applyBtn) {
+      const panel = applyBtn.closest("[data-timer-edit]") || applyBtn.closest(".timer-edit");
+      applyTimerEdit(panel);
+      return;
+    }
+    const adjBtn = e.target.closest(".js-timer-adj");
+    if (adjBtn) {
+      if (timer.mode !== "normal") {
+        showToast("تنظیم دستی فقط تو تایمر عادیه");
+        return;
+      }
+      timer.adjustMinutes(Number(adjBtn.dataset.adj));
       syncTimerEditInputs();
-      showToast(Number(btn.dataset.adj) > 0 ? "۵ دقیقه اضافه شد ⏱️" : "۵ دقیقه کم شد ⏱️");
-    });
+      showToast(Number(adjBtn.dataset.adj) > 0 ? "۵ دقیقه اضافه شد ⏱️" : "۵ دقیقه کم شد ⏱️");
+    }
   });
+
   $("#cheer-continue")?.addEventListener("click", () => {
     hideCheer();
     advanceAfterCheer();
@@ -654,8 +687,7 @@ function renderToday() {
     } else if (btn.dataset.action === "focus") {
       const idx = state.plan.blocks.findIndex((b) => b.instanceId === id);
       state.focusIndex = idx >= 0 ? idx : 0;
-      enterFocus();
-      showView("focus");
+      startRunOnToday();
     }
   };
 }
@@ -699,8 +731,27 @@ function typeEmojiOf(type) {
   return map[type] || "•";
 }
 
-/* ——— Focus ——— */
-function enterFocus() {
+/* ——— Focus / Today runner ——— */
+function startRunOnToday() {
+  state.runOnToday = true;
+  timer.setMode("normal");
+  $$("#timer-mode-tabs .choice").forEach((c) => c.classList.toggle("selected", c.dataset.mode === "normal"));
+  enterFocus({ resetTime: true });
+  showTodayRunner(true);
+  showView("today");
+  showToast("تایمر این پارت رو می‌تونی همین‌جا دستی عوض کنی ⏱️");
+}
+
+function showTodayRunner(show) {
+  const el = $("#today-runner");
+  if (!el) return;
+  el.classList.toggle("hidden", !show);
+  if (show) {
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function enterFocus({ resetTime = true } = {}) {
   if (!state.plan) ensurePlan();
   if (!state.plan) return;
   while (state.plan.blocks[state.focusIndex]?.type === "break" && state.focusIndex < state.plan.blocks.length - 1) {
@@ -708,17 +759,25 @@ function enterFocus() {
   }
   const block = currentFocusBlock();
   const emoji = block ? typeEmojiOf(block.type) : "";
-  $("#focus-block-title").textContent = block ? `${emoji} ${block.title}` : "فعالیتی باقی نمونده 💤";
-  if (block && timer.mode === "normal") {
-    timer.setMinutes(block.durationMin);
-  } else if (timer.mode === "pomodoro") {
-    timer.setMinutes(state.settings.pomodoroWork || 25);
+  const title = block ? `${emoji} ${block.title}` : "فعالیتی باقی نمونده 💤";
+  if ($("#focus-block-title")) $("#focus-block-title").textContent = title;
+  if ($("#today-runner-title")) $("#today-runner-title").textContent = title;
+
+  if (resetTime) {
+    if (block && timer.mode === "normal") {
+      timer.setMinutes(block.durationMin);
+    } else if (timer.mode === "pomodoro") {
+      timer.setMinutes(state.settings.pomodoroWork || 25);
+    }
   }
   renderTimer(timer.snapshot());
   syncTimerEditVisibility();
   syncTimerEditInputs();
   renderFocusQueue();
-  $("#stat-progress").textContent = `${toPersianDigits(calcProgress(state.plan))}٪`;
+  if ($("#stat-progress") && state.plan) {
+    $("#stat-progress").textContent = `${toPersianDigits(calcProgress(state.plan))}٪`;
+  }
+  if (state.runOnToday) showTodayRunner(Boolean(block));
 }
 
 function currentFocusBlock() {
@@ -733,7 +792,8 @@ function finishPartWithCheer() {
     return;
   }
   timer.pause();
-  $("#timer-toggle").textContent = "شروع";
+  if ($("#timer-toggle")) $("#timer-toggle").textContent = "شروع";
+  if ($("#today-timer-toggle")) $("#today-timer-toggle").textContent = "شروع";
   state.cheerPending = true;
   showCheer(pickCheer(block));
 }
@@ -769,38 +829,46 @@ function advanceAfterCheer() {
   if (next >= state.plan.blocks.length) {
     showToast("برنامه امروز تموم شد 🎉");
     state.focusIndex = Math.max(0, state.plan.blocks.length - 1);
+    state.runOnToday = false;
+    showTodayRunner(false);
     showView("today");
   } else {
     state.focusIndex = next;
-    enterFocus();
-    showView("focus");
+    enterFocus({ resetTime: true });
+    if (state.runOnToday) showView("today");
+    else showView("focus");
   }
   renderToday();
 }
 
 function syncTimerEditVisibility() {
-  const edit = $("#timer-edit");
-  if (!edit) return;
-  edit.classList.toggle("hidden", timer.mode !== "normal");
+  const hide = timer.mode !== "normal";
+  $$("[data-timer-edit]").forEach((edit) => edit.classList.toggle("hidden", hide));
 }
 
 function syncTimerEditInputs() {
   const snap = timer.snapshot();
-  const minEl = $("#timer-min");
-  const secEl = $("#timer-sec");
-  if (!minEl || !secEl) return;
-  minEl.value = String(Math.floor(snap.remainingSec / 60));
-  secEl.value = String(snap.remainingSec % 60);
+  const mins = String(Math.floor(snap.remainingSec / 60));
+  const secs = String(snap.remainingSec % 60);
+  $$(".js-timer-min").forEach((el) => {
+    el.value = mins;
+  });
+  $$(".js-timer-sec").forEach((el) => {
+    el.value = secs;
+  });
 }
 
-function applyTimerEdit() {
+function applyTimerEdit(panel) {
   if (timer.mode !== "normal") {
     showToast("تنظیم دستی فقط تو تایمر عادیه");
     return;
   }
-  const min = Number($("#timer-min")?.value || 0);
-  const sec = Number($("#timer-sec")?.value || 0);
-  if (!Number.isFinite(min) || !Number.isFinite(sec) || min + sec <= 0) {
+  const root = panel || document;
+  const minInput = root.querySelector?.(".js-timer-min") || $(".js-timer-min");
+  const secInput = root.querySelector?.(".js-timer-sec") || $(".js-timer-sec");
+  const min = Number(minInput?.value || 0);
+  const sec = Number(secInput?.value || 0);
+  if (!Number.isFinite(min) || !Number.isFinite(sec) || min * 60 + sec <= 0) {
     showToast("یه زمان درست وارد کن");
     return;
   }
@@ -832,28 +900,47 @@ function renderFocusQueue() {
 }
 
 function renderTimer(snap) {
+  const label = toPersianDigits(snap.label);
   const display = $("#timer-display");
-  if (!display) return;
-  display.textContent = toPersianDigits(snap.label);
-  display.classList.toggle("paused", !snap.running);
-  $("#timer-phase-label").textContent =
-    snap.mode === "pomodoro"
-      ? snap.phase === "work"
-        ? "فاز کار 💪"
-        : snap.phase === "longBreak"
-          ? "استراحت بلند ☕"
-          : "استراحت کوتاه 🌿"
-      : snap.running
-        ? "در حال اجرا ⏳"
-        : "آماده ✋";
-  $("#stat-pomos").textContent = toPersianDigits(snap.pomodoroCount);
-  $("#stat-phase").textContent =
-    snap.mode === "pomodoro" ? (snap.phase === "work" ? "کار" : "استراحت") : "عادی";
-  if (state.plan) {
+  if (display) {
+    display.textContent = label;
+    display.classList.toggle("paused", !snap.running);
+  }
+  const todayDisplay = $("#today-runner-display");
+  if (todayDisplay) {
+    todayDisplay.textContent = label;
+    todayDisplay.classList.toggle("paused", !snap.running);
+  }
+  const toggleLabel = snap.running ? "توقف" : snap.remainingSec < snap.totalSec ? "ادامه" : "شروع";
+  if ($("#timer-toggle")) $("#timer-toggle").textContent = toggleLabel;
+  if ($("#today-timer-toggle")) $("#today-timer-toggle").textContent = toggleLabel;
+  const phase = $("#timer-phase-label");
+  if (phase) {
+    phase.textContent =
+      snap.mode === "pomodoro"
+        ? snap.phase === "work"
+          ? "فاز کار 💪"
+          : snap.phase === "longBreak"
+            ? "استراحت بلند ☕"
+            : "استراحت کوتاه 🌿"
+        : snap.running
+          ? "در حال اجرا ⏳"
+          : "آماده ✋";
+  }
+  if ($("#stat-pomos")) $("#stat-pomos").textContent = toPersianDigits(snap.pomodoroCount);
+  if ($("#stat-phase")) {
+    $("#stat-phase").textContent =
+      snap.mode === "pomodoro" ? (snap.phase === "work" ? "کار" : "استراحت") : "عادی";
+  }
+  if (state.plan && $("#stat-progress")) {
     $("#stat-progress").textContent = `${toPersianDigits(calcProgress(state.plan))}٪`;
   }
+  const toggleLabel = snap.running ? "توقف" : snap.remainingSec < snap.totalSec ? "ادامه" : "شروع";
+  if ($("#timer-toggle")) $("#timer-toggle").textContent = toggleLabel;
+  if ($("#today-timer-toggle")) $("#today-timer-toggle").textContent = toggleLabel;
+
   const active = document.activeElement;
-  const editing = active && (active.id === "timer-min" || active.id === "timer-sec");
+  const editing = active && (active.classList?.contains("js-timer-min") || active.classList?.contains("js-timer-sec"));
   if (!editing) syncTimerEditInputs();
 }
 

@@ -1,4 +1,4 @@
-const CACHE = "chaos-v22-coach-line";
+const CACHE = "chaos-v23-no-phys-title";
 const ASSETS = [
   "./",
   "./index.html",
@@ -54,6 +54,18 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+      .then((clients) =>
+        Promise.all(
+          clients.map((client) => {
+            if (typeof client.navigate === "function") {
+              return client.navigate(client.url);
+            }
+            client.postMessage({ type: "chaos-force-reload", build: CACHE });
+            return undefined;
+          })
+        )
+      )
   );
 });
 
@@ -90,7 +102,7 @@ self.addEventListener("fetch", (event) => {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE);
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, { cache: "no-store" });
     if (response && response.status === 200) {
       cache.put(request, response.clone());
     }

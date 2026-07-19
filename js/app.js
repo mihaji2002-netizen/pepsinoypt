@@ -410,7 +410,8 @@ function renderSuggestionsStep(panel, d, track) {
 
   let html = `
     <h2 class="panel-title">اینا پیشنهادات ساخت برنامه‌ته</h2>
-    <p class="panel-desc">هر جا چند پیشنهاد با «یا» دیدی، از اون بازه فقط یکی رو انتخاب کن. بقیه بازه‌ها هم تو برنامه‌ت میان.</p>`;
+    <p class="panel-desc">هر جا چند پیشنهاد با «یا» دیدی، از اون بازه فقط یکی رو انتخاب کن. بقیه بازه‌ها هم تو برنامه‌ت میان.</p>
+    <p class="panel-desc" style="opacity:0.55;font-size:0.75rem">نسخه ۲۳</p>`;
 
   for (const period of PERIODS) {
     const items = suggestions.filter((s) => s.period === period.id);
@@ -430,7 +431,7 @@ function renderSuggestionsStep(panel, d, track) {
               <button type="button" class="suggestion-card ${on ? "selected" : ""}" data-id="${s.id}" data-group="${s.exclusiveGroup || ""}" aria-pressed="${on}">
                 <div class="suggestion-period">${multi ? "یا" : period.label}</div>
                 <div class="suggestion-title">${escapeHtml(s.title)}</div>
-                <p class="suggestion-body">${escapeHtml(s.body)}</p>
+                ${s.body ? `<p class="suggestion-body">${escapeHtml(s.body)}</p>` : ""}
                 <div class="suggestion-check">${on ? "انتخاب شد ✓" : multi ? "بزن اینو انتخاب کن" : "تو برنامه‌ست"}</div>
               </button>`;
             })
@@ -997,41 +998,25 @@ function saveSettingsFromUi() {
 }
 
 /* ——— PWA ——— */
-const APP_BUILD = "chaos-v22-coach-line";
-
-async function forceFreshBuildIfNeeded() {
-  try {
-    const key = "chaos-app-build";
-    const prev = localStorage.getItem(key);
-    if (prev === APP_BUILD) return;
-
-    const cacheKeys = "caches" in window ? await caches.keys() : [];
-    const hasStaleCache = cacheKeys.some((k) => k !== APP_BUILD);
-    localStorage.setItem(key, APP_BUILD);
-
-    // First-ever clean visit: nothing to purge
-    if (prev == null && !hasStaleCache) return;
-
-    await Promise.all(cacheKeys.map((k) => caches.delete(k)));
-    const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
-    await Promise.all(regs.map((r) => r.unregister()));
-    location.reload();
-  } catch {
-    /* ignore */
-  }
-}
+const APP_BUILD = "chaos-v23-no-phys-title";
 
 function setupPwa() {
-  forceFreshBuildIfNeeded();
   if ("serviceWorker" in navigator) {
-    // Reload at most once per version when a new SW takes control
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data?.type === "chaos-force-reload") {
+        const key = `chaos-sw-reload-${APP_BUILD}`;
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, "1");
+        window.location.reload();
+      }
+    });
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       const key = `chaos-sw-reload-${APP_BUILD}`;
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
       window.location.reload();
     });
-    navigator.serviceWorker.register("./sw.js").catch(() => {
+    navigator.serviceWorker.register(`./sw.js?v=23`).catch(() => {
       /* optional in file:// */
     });
   }

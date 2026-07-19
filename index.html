@@ -9,17 +9,49 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Chaos" />
     <title>Chaos | برنامه‌ریز نهایی و کنکور</title>
+    <script>
+      /* Hard cache bust — runs before app modules so stuck PWAs can escape old shells */
+      (function () {
+        var BUILD = "chaos-v23-no-phys-title";
+        var key = "chaos-app-build";
+        try {
+          if (localStorage.getItem(key) === BUILD) return;
+          localStorage.setItem(key, BUILD);
+          var tasks = [];
+          if (window.caches) {
+            tasks.push(
+              caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+              })
+            );
+          }
+          if (navigator.serviceWorker) {
+            tasks.push(
+              navigator.serviceWorker.getRegistrations().then(function (regs) {
+                return Promise.all(regs.map(function (r) { return r.unregister(); }));
+              })
+            );
+          }
+          Promise.all(tasks).then(function () {
+            var u = new URL(location.href);
+            if (u.searchParams.get("cb") === "23") return;
+            u.searchParams.set("cb", "23");
+            location.replace(u.toString());
+          });
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./assets/brand/pepsino-mark-96.png" type="image/png" />
     <link rel="apple-touch-icon" href="./assets/brand/pepsino-mark-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Syne:wght@700;800&family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./css/tokens.css?v=22" />
-    <link rel="stylesheet" href="./css/base.css?v=22" />
-    <link rel="stylesheet" href="./css/layout.css?v=22" />
-    <link rel="stylesheet" href="./css/components.css?v=22" />
-    <link rel="stylesheet" href="./css/print.css?v=22" />
+    <link rel="stylesheet" href="./css/tokens.css?v=23" />
+    <link rel="stylesheet" href="./css/base.css?v=23" />
+    <link rel="stylesheet" href="./css/layout.css?v=23" />
+    <link rel="stylesheet" href="./css/components.css?v=23" />
+    <link rel="stylesheet" href="./css/print.css?v=23" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -405,6 +437,6 @@
       </nav>
     </div>
 
-    <script type="module" src="./js/app.js?v=22"></script>
+    <script type="module" src="./js/app.js?v=23"></script>
   </body>
 </html>

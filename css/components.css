@@ -725,11 +725,14 @@
 }
 
 .landing-brand {
+  font-family: var(--font-brand);
   font-size: var(--fs-hero);
-  font-weight: 900;
+  font-weight: 800;
   color: var(--color-primary);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
   line-height: 1.05;
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .landing-headline {
@@ -754,36 +757,147 @@
   margin-top: var(--space-6);
 }
 
-.landing-visual {
+/* Home day rhythm — full-bleed story, not a caption strip */
+.landing-day {
   position: relative;
-  height: min(42vh, 320px);
-  border-radius: 0;
   margin-inline: calc(-1 * var(--space-4));
+  margin-top: var(--space-2);
+  min-height: min(48vh, 380px);
   overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(11, 58, 74, 0.92), rgba(20, 88, 108, 0.85)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.08'%3E%3Cpath d='M0 40h80M40 0v80'/%3E%3C/g%3E%3C/svg%3E");
-  display: flex;
-  align-items: flex-end;
-  padding: var(--space-6);
-  color: #fff;
+  color: #f7fffb;
 }
 
-.landing-visual::after {
-  content: "";
+.landing-day-sky {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 70% 30%, rgba(224, 122, 61, 0.35), transparent 45%);
+  background:
+    radial-gradient(90% 70% at 15% 20%, rgba(255, 214, 120, 0.45), transparent 55%),
+    radial-gradient(70% 60% at 85% 30%, rgba(226, 92, 46, 0.28), transparent 50%),
+    radial-gradient(80% 70% at 60% 90%, rgba(61, 90, 128, 0.55), transparent 55%),
+    linear-gradient(165deg, #0c3d36 0%, #14586c 38%, #1a3348 72%, #0e1620 100%);
+  animation: day-sky-drift 14s var(--ease-out) infinite alternate;
+}
+
+.landing-day-sky::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 20% 40%, rgba(255, 255, 255, 0.08) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.07) 0 1.5px, transparent 3px),
+    radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.06) 0 1px, transparent 2px);
+  background-size: 180px 180px, 220px 220px, 140px 140px;
+  animation: day-spark 18s linear infinite;
+  opacity: 0.7;
   pointer-events: none;
 }
 
-.landing-visual-caption {
+.landing-day-beats {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  min-height: inherit;
+  padding: var(--space-6) var(--space-4) var(--space-5);
+}
+
+.day-beat {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 0.7rem 0.85rem;
+  max-width: 34rem;
+  padding: 0.15rem 0;
+  animation: day-beat-in 0.7s var(--ease-out) both;
+  animation-delay: calc(0.35s + var(--i) * 0.12s);
+}
+
+.day-beat-orb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.08);
+  animation: day-orb-pulse 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.35s);
+}
+
+.day-beat[data-period="morning"] {
+  color: #ffe08a;
+}
+.day-beat[data-period="afternoon"] {
+  color: #9ec1ff;
+}
+.day-beat[data-period="evening"] {
+  color: #ffb078;
+}
+.day-beat[data-period="night"] {
+  color: #c5d4ff;
+}
+
+.day-beat-emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
+}
+
+.day-beat strong {
+  display: block;
   font-size: var(--fs-sm);
-  opacity: 0.92;
-  max-width: 28ch;
-  line-height: 1.7;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+.day-beat p {
+  margin: 0.15rem 0 0;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: rgba(247, 255, 251, 0.86);
+  max-width: 32ch;
+}
+
+@keyframes day-sky-drift {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(-1.5%, 1%, 0);
+  }
+}
+
+@keyframes day-spark {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-40px, 24px, 0);
+  }
+}
+
+@keyframes day-beat-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes day-orb-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
 }
 
 /* Settings / summary chips */

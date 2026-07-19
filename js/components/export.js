@@ -30,7 +30,7 @@ export async function exportPlanImage(plan, meta = {}) {
   ctx.font = "800 36px Vazirmatn, Tahoma, sans-serif";
   ctx.textAlign = "right";
   ctx.direction = "rtl";
-  ctx.fillText("مسیر", width - pad, pad + 40);
+  ctx.fillText("Chaos", width - pad, pad + 40);
 
   ctx.fillStyle = "#3d5160";
   ctx.font = "600 18px Vazirmatn, Tahoma, sans-serif";
@@ -74,7 +74,7 @@ export async function exportPlanImage(plan, meta = {}) {
   // Footer
   ctx.fillStyle = "#6b7f8c";
   ctx.font = "500 12px Vazirmatn, Tahoma, sans-serif";
-  ctx.fillText("مسیر · pepsino LAB", width - pad, height - pad - 22);
+  ctx.fillText("Chaos · pepsino LAB", width - pad, height - pad - 22);
   ctx.fillStyle = "#e11d48";
   ctx.font = "500 14px Great Vibes, cursive, serif";
   ctx.textAlign = "left";
@@ -85,7 +85,7 @@ export async function exportPlanImage(plan, meta = {}) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `masir-plan-${plan.dateKey}.png`;
+  a.download = `chaos-plan-${plan.dateKey}.png`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   return true;

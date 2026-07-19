@@ -4,22 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0f6b5c" />
-    <meta name="description" content="مسیر — برنامهٔ سیال روزانه وقتی امتحان‌ها تعویق می‌خورند؛ استاتیک، آفلاین، بدون ثبت‌نام." />
+    <meta name="description" content="Chaos — برنامهٔ سیال روزانه وقتی امتحان‌ها تعویق می‌خورند؛ استاتیک، آفلاین، بدون ثبت‌نام." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="مسیر" />
-    <title>مسیر | برنامه‌ریز نهایی و کنکور</title>
+    <meta name="apple-mobile-web-app-title" content="Chaos" />
+    <title>Chaos | برنامه‌ریز نهایی و کنکور</title>
     <link rel="manifest" href="./manifest.json" />
     <link rel="icon" href="./assets/brand/pepsino-mark-96.png" type="image/png" />
     <link rel="apple-touch-icon" href="./assets/brand/pepsino-mark-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./css/tokens.css?v=11" />
-    <link rel="stylesheet" href="./css/base.css?v=11" />
-    <link rel="stylesheet" href="./css/layout.css?v=11" />
-    <link rel="stylesheet" href="./css/components.css?v=11" />
-    <link rel="stylesheet" href="./css/print.css?v=11" />
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Syne:wght@700;800&family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/tokens.css?v=12" />
+    <link rel="stylesheet" href="./css/base.css?v=12" />
+    <link rel="stylesheet" href="./css/layout.css?v=12" />
+    <link rel="stylesheet" href="./css/components.css?v=12" />
+    <link rel="stylesheet" href="./css/print.css?v=12" />
   </head>
   <body>
     <div id="app" class="app-shell">
@@ -38,12 +38,12 @@
       </div>
 
       <header class="app-header">
-        <div class="brand" aria-label="pepsino LAB · مسیر">
+        <div class="brand" aria-label="pepsino LAB · Chaos">
           <div class="brand-mark">
             <img src="./assets/brand/pepsino-mark-96.png" width="36" height="36" alt="" />
           </div>
           <div class="brand-text">
-            <div class="brand-name">مسیر</div>
+            <div class="brand-name">Chaos</div>
             <div class="brand-tag">pepsino LAB</div>
           </div>
         </div>
@@ -70,7 +70,7 @@
                   decoding="async"
                 />
               </div>
-              <div class="landing-brand anim-fade-up" style="animation-delay: 60ms">مسیر</div>
+              <div class="landing-brand anim-fade-up" style="animation-delay: 60ms">Chaos</div>
               <h1 class="landing-headline anim-fade-up" style="animation-delay: 120ms">
                 امتحان جابه‌جا شد؟ برنامه‌ت رو همین‌جا بساز
               </h1>
@@ -82,10 +82,42 @@
                 <button type="button" class="btn btn-ghost hidden" id="btn-skip-landing">برنامه امروز 📅</button>
               </div>
             </div>
-            <div class="landing-visual anim-fade-in" style="animation-delay: 300ms" role="img" aria-label="نمای مسیر مطالعه روزانه">
-              <p class="landing-visual-caption">
-                ☀️ صبح · 🌤️ ظهر · 🧡 عصر · 🌙 شب — بدون ساعت‌بندی خشک.
-              </p>
+            <div class="landing-day anim-fade-in" style="animation-delay: 300ms" aria-label="ریتم یک روز با Chaos">
+              <div class="landing-day-sky" aria-hidden="true"></div>
+              <div class="landing-day-beats">
+                <div class="day-beat" data-period="morning" style="--i: 0">
+                  <span class="day-beat-orb" aria-hidden="true"></span>
+                  <span class="day-beat-emoji" aria-hidden="true">☀️</span>
+                  <div>
+                    <strong>صبح</strong>
+                    <p>دنیا هنوز آرومه — یه پارت محکم بزن، بقیه روز راحت‌تره</p>
+                  </div>
+                </div>
+                <div class="day-beat" data-period="afternoon" style="--i: 1">
+                  <span class="day-beat-orb" aria-hidden="true"></span>
+                  <span class="day-beat-emoji" aria-hidden="true">🌤️</span>
+                  <div>
+                    <strong>ظهر</strong>
+                    <p>انرژی اومده؛ تست بزن یا جزوه بخون — خودت انتخاب کن</p>
+                  </div>
+                </div>
+                <div class="day-beat" data-period="evening" style="--i: 2">
+                  <span class="day-beat-orb" aria-hidden="true"></span>
+                  <span class="day-beat-emoji" aria-hidden="true">🌇</span>
+                  <div>
+                    <strong>عصر</strong>
+                    <p>اگه افتادی، کم کن ولی قطع نکن — یه دور کوتاه هم کافیه</p>
+                  </div>
+                </div>
+                <div class="day-beat" data-period="night" style="--i: 3">
+                  <span class="day-beat-orb" aria-hidden="true"></span>
+                  <span class="day-beat-emoji" aria-hidden="true">🌙</span>
+                  <div>
+                    <strong>شب</strong>
+                    <p>آروم جمع کن؛ نه کرونومتر، نه فشار — فقط تمومش کن</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -109,7 +141,7 @@
           <div id="install-banner" class="install-banner">
             <div class="row-between">
               <div>
-                <strong>نصب مسیر روی موبایل</strong>
+                <strong>نصب Chaos روی موبایل</strong>
                 <p style="font-size: var(--fs-sm); color: var(--color-ink-soft); margin-top: 4px">
                   دسترسی سریع و کار آفلاین.
                 </p>
@@ -354,6 +386,6 @@
       </nav>
     </div>
 
-    <script type="module" src="./js/app.js?v=11"></script>
+    <script type="module" src="./js/app.js?v=12"></script>
   </body>
 </html>

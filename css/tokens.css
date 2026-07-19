@@ -1,5 +1,5 @@
 :root {
-  /* Brand — مسیر */
+  /* Brand — Chaos */
   --color-bg-0: #e7f3f1;
   --color-bg-1: #f3faf8;
   --color-bg-2: #d8ebe6;
@@ -44,8 +44,9 @@
   --color-block-foundation: #3d5a80;
   --color-block-analysis: #c45c78;
 
-  --font-display: "Vazirmatn", "Tahoma", sans-serif;
+  --font-display: "Syne", "Vazirmatn", "Tahoma", sans-serif;
   --font-body: "Vazirmatn", "Tahoma", sans-serif;
+  --font-brand: "Syne", "Vazirmatn", sans-serif;
 
   --fs-xs: 0.75rem;
   --fs-sm: 0.875rem;

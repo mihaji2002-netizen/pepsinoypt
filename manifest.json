@@ -1,13 +1,13 @@
 {
-  "name": "مسیر — برنامه‌ریز نهایی و کنکور",
-  "short_name": "مسیر",
+  "name": "Chaos — برنامه‌ریز نهایی و کنکور",
+  "short_name": "Chaos",
   "description": "برنامه روزانه استاتیک برای امتحانات نهایی و کنکور؛ آفلاین و بدون ثبت‌نام.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#e8eef2",
-  "theme_color": "#0b3a4a",
+  "theme_color": "#0f6b5c",
   "lang": "fa",
   "dir": "rtl",
   "icons": [

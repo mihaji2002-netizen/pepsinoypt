@@ -985,7 +985,7 @@ function renderSettings() {
     const afternoon = picked.find((s) => s.period === "afternoon");
     const evening = picked.find((s) => s.period === "evening");
     box.innerHTML = `
-      <div class="summary-row"><span class="k">مسیر</span><span class="v">${info.trackLabel}</span></div>
+      <div class="summary-row"><span class="k">پایه / رشته</span><span class="v">${info.trackLabel}</span></div>
       <div class="summary-row"><span class="k">امتحان بعدی</span><span class="v">${info.nextExam}</span></div>
       <div class="summary-row"><span class="k">وضعیت خبر</span><span class="v">${info.newsLabel}</span></div>
       <div class="summary-row"><span class="k">سطح در درس</span><span class="v">${info.strengthLabel}</span></div>
@@ -1024,7 +1024,7 @@ function setupPwa() {
   if ("serviceWorker" in navigator) {
     // Reload at most once per version when a new SW takes control
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      const key = "masir-sw-reload-v11";
+      const key = "chaos-sw-reload-v12";
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
       window.location.reload();

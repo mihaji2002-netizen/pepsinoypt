@@ -128,6 +128,10 @@ function bindGlobal() {
   });
   $("#btn-print")?.addEventListener("click", () => printPlan());
   $("#btn-rebuild")?.addEventListener("click", () => {
+    if (state.profile) {
+      state.profile.restTipIndex = Math.floor(Math.random() * 8);
+      saveProfile(state.profile);
+    }
     rebuildPlan(true);
     showToast("برنامه امروز بازسازی شد");
   });
@@ -360,6 +364,9 @@ function renderWizard() {
 }
 
 function renderSuggestionsStep(panel, d, track) {
+  if (!Number.isInteger(d.restTipIndex)) {
+    d.restTipIndex = Math.floor(Math.random() * 8);
+  }
   const suggestions = previewSuggestions(d);
   if (!d.selectedSuggestions?.length) {
     d.selectedSuggestions = defaultSelectedIds(suggestions);
@@ -604,7 +611,7 @@ function renderToday() {
               b.type !== "break"
                 ? `<button type="button" class="check-btn ${b.done ? "checked" : ""}" data-action="toggle" data-id="${b.instanceId}">${b.done ? "انجام شد ✓" : "تیک بزن"}</button>
                    <button type="button" class="btn btn-ghost" style="min-height:36px;padding:0.4rem 0.75rem;font-size:var(--fs-xs)" data-action="focus" data-id="${b.instanceId}">شروع این بخش</button>`
-                : `<span style="font-size:var(--fs-xs);color:var(--color-ink-muted)">یه استراحت کوچیک</span>`
+                : `<span style="font-size:var(--fs-xs);color:var(--color-ink-muted)">وقت استراحت — ازش لذت ببر</span>`
             }
           </div>
         </div>

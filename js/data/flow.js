@@ -95,19 +95,19 @@ export function resolveSuggestions(answers) {
   if (news === "cancelled" && strength === "weak") {
     list.push(
       eveningReview(subjectName, answers.nextExamId),
-      eveningRest(),
+      eveningRest(answers),
       eveningNextUncertain(answers)
     );
   } else if (news === "cancelled" && strength === "ok") {
     list.push(
       eveningReview(subjectName, answers.nextExamId),
-      eveningRest(),
+      eveningRest(answers),
       eveningBookletBioMath(),
       eveningBookletPhysChem()
     );
   } else {
     // noNews weak or ok
-    list.push(eveningReview(subjectName, answers.nextExamId), eveningRest());
+    list.push(eveningReview(subjectName, answers.nextExamId), eveningRest(answers));
   }
 
   // —— روتین شب ——
@@ -285,19 +285,67 @@ function eveningReview(subjectName, subjectId) {
   });
 }
 
-function eveningRest() {
+const REST_TIPS = [
+  {
+    title: "عصر: استراحت واقعی",
+    body: "مغزت تعطیله، نه گوشیت. یه دور از میز بلند شو.",
+    tip: "پیشنهاد: ۱۰ دقیقه راه برو تو خونه/حیاط، یه لیوان آب بخور، بعد اگه خواستی چرت کوتاه بزن. اینستا و ریلز ممنوع — واقعاً ریلکس نمی‌کنن.",
+  },
+  {
+    title: "عصر: باتری‌ت رو شارژ کن",
+    body: "استراحت یعنی بازیابی، نه اسکرول تا ابد.",
+    tip: "پیشنهاد: یه میوه یا یه وعده سبک بخور، موزیک آروم بذار، چشمات رو ببند ۵ دقیقه. بعدش تازه می‌فهمی چقدر سبک شدی.",
+  },
+  {
+    title: "عصر: وقت تنفس",
+    body: "امروز تا اینجا خوب اومدی؛ حالا بذار بدنت یه کم بیاد پایین.",
+    tip: "پیشنهاد: کشش گردن و شونه، دو تا نفس عمیق، یه چایی/دمنوش. اگه خواب‌آلودی، ۲۰ دقیقه چرت — بیشتر نه که شب به‌هم بریزه.",
+  },
+  {
+    title: "عصر: قطع کن، جدا شو",
+    body: "کتاب و تست رو ببند. استراحت وقتی استراحتِ که از درس جدا شی.",
+    tip: "پیشنهاد: بری آشپزخونه یه چیزی درست کنی، با خونواده حرف بزنی، یا فقط از پنجره نگاه کنی. موبایل رو بذار اون‌ور اتاق.",
+  },
+  {
+    title: "عصر: ریست کوچیک",
+    body: "یه ریست کوتاه بهتر از زور زدن الکیِ عصره.",
+    tip: "پیشنهاد: یه دوش کوتاه یا شستن صورت با آب سرد، بعد چند دقیقه سکوت. اگه انرژی داشتی، یه پیاده‌روی ۱۰ دقیقه‌ای دور کوچه عالیه.",
+  },
+  {
+    title: "عصر: حال‌خوشی عمدی",
+    body: "استراحت رو جدی بگیر؛ بخشیه از برنامه، نه تنبلی.",
+    tip: "پیشنهاد: یه آهنگ دوست‌داشتنی، یه صفحه کمیک/داستان کوتاه، یا حرف زدن با رفیق — ولی تایمر بذار، مثلاً ۴۰ دقیقه، بعد برگرد روتین شب.",
+  },
+  {
+    title: "عصر: بدن هم سهم داره",
+    body: "فقط مغزت خسته نیست؛ کمرت و چشمات هم خسته‌ان.",
+    tip: "پیشنهاد: از صندلی پاشو، یه کم نرمش کن، به دور نگاه کن (قانون ۲۰-۲۰-۲۰). اسنک سالم بزن، شکلات تلخ هم اوکیه اگه افراط نکنی.",
+  },
+  {
+    title: "عصر: خاموشی موقت",
+    body: "یه خاموشی کوچیک قبل روتین شب، شب رو نجات می‌ده.",
+    tip: "پیشنهاد: نوتیفیکیشن‌ها رو ببند، دراز بکش بدون گوشی، یا یه دعا/ذکر کوتاه. هدف اینه استرس بیاد پایین، نه اینکه فیلم سه‌ساعته استارت بزنی.",
+  },
+];
+
+function eveningRest(answers = {}) {
+  const idx =
+    Number.isInteger(answers.restTipIndex)
+      ? answers.restTipIndex
+      : Math.floor(Math.random() * REST_TIPS.length);
+  const tip = REST_TIPS[((idx % REST_TIPS.length) + REST_TIPS.length) % REST_TIPS.length];
   return suggestion({
     id: "evening-rest",
     period: "evening",
     exclusiveGroup: "evening",
-    title: "عصر: استراحت",
-    body: "استراحت.",
+    title: tip.title,
+    body: `${tip.body}\n${tip.tip}`,
     blocks: [
       {
         blockId: "break-long",
-        durationMin: 60,
-        title: "استراحت",
-        desc: "بلند شو، راه برو، غذا بخور. اسکرول ممنوع.",
+        durationMin: 50,
+        title: tip.title.replace(/^عصر:\s*/, "") || "استراحت",
+        desc: tip.tip,
       },
     ],
   });

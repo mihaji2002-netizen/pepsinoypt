@@ -1,4 +1,4 @@
-const CACHE = "masir-v10-force-refresh";
+const CACHE = "masir-v11-restore-app";
 const ASSETS = [
   "./",
   "./index.html",
